@@ -130,8 +130,7 @@ fun UpgradeCard(
         val buttonText = if (isMaxLevel) "Maxed" else "Upgrade ($cost)"
         PrimaryButton(
             text = buttonText,
-            onClick = onUpgrade,
-            enabled = !isMaxLevel && canAfford,
+            onClick = {if(!isMaxLevel && canAfford)onUpgrade},
             modifier = Modifier.padding(top = 8.dp)
         )
     }
