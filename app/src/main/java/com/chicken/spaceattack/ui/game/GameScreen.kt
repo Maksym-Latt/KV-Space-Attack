@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -32,7 +34,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.consume
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -91,16 +92,17 @@ fun GameScreen(
                 val widthPx = constraints.maxWidth.toFloat()
                 val heightPx = constraints.maxHeight.toFloat()
 
-                val positioned: (Float, Float, Dp, Dp) -> Modifier = { xPercent, yPercent, width, height ->
-                    val widthOffset = with(density) { width.toPx() }
-                    val heightOffset = with(density) { height.toPx() }
-                    Modifier.offset {
-                        IntOffset(
-                            x = (xPercent * widthPx - widthOffset / 2f).toInt(),
-                            y = (yPercent * heightPx - heightOffset / 2f).toInt()
-                        )
+                val positioned: (Float, Float, Dp, Dp) -> Modifier =
+                    { xPercent, yPercent, width, height ->
+                        val widthOffset = with(density) { width.toPx() }
+                        val heightOffset = with(density) { height.toPx() }
+                        Modifier.offset {
+                            IntOffset(
+                                x = (xPercent * widthPx - widthOffset / 2f).toInt(),
+                                y = (yPercent * heightPx - heightOffset / 2f).toInt()
+                            )
+                        }
                     }
-                }
 
                 GameBackground()
 
@@ -164,14 +166,9 @@ private fun GameContent(
         modifier = Modifier
             .fillMaxSize()
             .pointerInput(Unit) {
-                detectDragGestures(
-                    onDrag = { change, dragAmount ->
-                        change.consume()
-                        onDrag(dragAmount.x)
-                        val fraction = (change.position.x / size.width).coerceIn(0f, 1f)
-                        onDragTo(fraction)
-                    }
-                )
+                detectHorizontalDragGestures { _, dragAmount ->
+                    onDrag(dragAmount)
+                }
             }
     ) {
         Hud(
@@ -229,16 +226,13 @@ private fun GameContent(
                             onCollectBoost(boost.id)
                         }
                     }
-                }
             )
         }
 
-        with(this) {
-            PlayerSprite(
-                state = state,
-                positioned = positioned
-            )
-        }
+        PlayerSprite(
+            state = state,
+            positioned = positioned
+        )
 
         if (state.bossHealth > 0f) {
             BossHealthBar(
@@ -247,6 +241,7 @@ private fun GameContent(
         }
     }
 }
+
 
 @Composable
 private fun Hud(
