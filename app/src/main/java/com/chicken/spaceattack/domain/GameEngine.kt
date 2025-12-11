@@ -15,6 +15,9 @@ import kotlin.random.Random
 class GameEngine {
     private val horizontalBounds = 0f..1f
     private val verticalBounds = 0f..1f
+    private val formationStartY = 0.2f
+    private val formationSpacingY = 0.08f
+    private val formationColumns = 6
 
     private val levelConfigs = listOf(
         LevelConfig(level = 1, smallEnemies = 12, mediumEnemies = 4),
@@ -34,43 +37,116 @@ class GameEngine {
     fun currentLevelConfig(level: Int) = levelConfigs.firstOrNull { it.level == level } ?: levelConfigs.last()
 
     private fun spawnLevel(config: LevelConfig): List<Enemy> {
-        val enemies = mutableListOf<Enemy>()
+        val totalEnemies = config.smallEnemies + config.mediumEnemies
+        val slots = mutableListOf<FormationSlot>()
         var row = 0
         var column = 0
-        repeat(config.smallEnemies) {
-            enemies += Enemy(
-                type = EnemyType.SMALL,
-                position = gridPosition(row, column)
-            )
+        repeat(totalEnemies) {
+            slots += FormationSlot(row, column, gridPosition(row, column))
             column++
-            if (column >= 6) {
+            if (column >= formationColumns) {
                 column = 0
                 row++
             }
         }
-        repeat(config.mediumEnemies) {
-            enemies += Enemy(
-                type = EnemyType.MEDIUM,
-                position = gridPosition(row, column)
-            )
-            column++
-            if (column >= 6) {
-                column = 0
-                row++
-            }
+
+        val pattern = FormationPattern.entries.random()
+        val assignedTypes = when (pattern) {
+            FormationPattern.FRONT_RED_BACK_BLUE -> frontRedBackBlue(config, slots.size)
+            FormationPattern.CHECKERBOARD -> checkerboard(config, slots)
+            FormationPattern.RED_SIDES -> redSides(config, slots)
         }
+
+        val enemies = slots.mapIndexed { index, slot ->
+            Enemy(
+                type = assignedTypes.getOrElse(index) { EnemyType.SMALL },
+                position = slot.position
+            )
+        }.toMutableList()
+
         if (config.boss) {
-            enemies += Enemy(type = EnemyType.BOSS, position = Position(0.5f, 0.1f), direction = 1f)
+            enemies += Enemy(type = EnemyType.BOSS, position = Position(0.5f, 0.18f), direction = 1f)
         }
         return enemies
     }
 
+    private fun frontRedBackBlue(config: LevelConfig, totalSlots: Int): List<EnemyType> {
+        var remainingMedium = config.mediumEnemies
+        var remainingSmall = config.smallEnemies
+        return List(totalSlots) {
+            when {
+                remainingMedium > 0 -> {
+                    remainingMedium--
+                    EnemyType.MEDIUM
+                }
+
+                remainingSmall > 0 -> {
+                    remainingSmall--
+                    EnemyType.SMALL
+                }
+
+                else -> EnemyType.SMALL
+            }
+        }
+    }
+
+    private fun checkerboard(config: LevelConfig, slots: List<FormationSlot>): List<EnemyType> {
+        var remainingMedium = config.mediumEnemies
+        var remainingSmall = config.smallEnemies
+        return slots.map { slot ->
+            val prefersMedium = (slot.row + slot.column) % 2 == 0
+            when {
+                prefersMedium && remainingMedium > 0 -> {
+                    remainingMedium--
+                    EnemyType.MEDIUM
+                }
+
+                remainingSmall > 0 -> {
+                    remainingSmall--
+                    EnemyType.SMALL
+                }
+
+                remainingMedium > 0 -> {
+                    remainingMedium--
+                    EnemyType.MEDIUM
+                }
+
+                else -> EnemyType.SMALL
+            }
+        }
+    }
+
+    private fun redSides(config: LevelConfig, slots: List<FormationSlot>): List<EnemyType> {
+        var remainingMedium = config.mediumEnemies
+        var remainingSmall = config.smallEnemies
+        return slots.map { slot ->
+            val onSide = slot.column == 0 || slot.column == formationColumns - 1
+            when {
+                onSide && remainingMedium > 0 -> {
+                    remainingMedium--
+                    EnemyType.MEDIUM
+                }
+
+                remainingSmall > 0 -> {
+                    remainingSmall--
+                    EnemyType.SMALL
+                }
+
+                remainingMedium > 0 -> {
+                    remainingMedium--
+                    EnemyType.MEDIUM
+                }
+
+                else -> EnemyType.SMALL
+            }
+        }
+    }
+
     private fun gridPosition(row: Int, column: Int): Position {
         val spacingX = 1f / 7f
-        val spacingY = 0.08f
         val startX = spacingX
         val x = startX + column * spacingX
-        val y = 0.12f + row * spacingY
+        val y = formationStartY + row * formationSpacingY
         return Position(x, y)
     }
 
@@ -245,6 +321,10 @@ class GameEngine {
             )
         }
     }
+
+    private enum class FormationPattern { FRONT_RED_BACK_BLUE, CHECKERBOARD, RED_SIDES }
+
+    private data class FormationSlot(val row: Int, val column: Int, val position: Position)
 
     fun collides(a: Position, b: Position, radius: Float): Boolean {
         return hypot(a.x - b.x, a.y - b.y) < radius

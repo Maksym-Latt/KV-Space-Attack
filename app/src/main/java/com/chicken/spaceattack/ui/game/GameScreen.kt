@@ -309,33 +309,55 @@ private fun Hud(
 
 @Composable
 private fun ActiveBoostIndicator(state: GameUiState) {
-    val boost = state.activeBoost ?: return
-    val boostName = boost.name.lowercase().replaceFirstChar { it.titlecase() }
-    val description = when (boost) {
-        BoostType.NUCLEAR -> "Shots left: ${state.nuclearShotsRemaining}"
-        else -> "Time: ${(state.activeBoostRemaining / 1000f).coerceAtLeast(0f).let { String.format("%.1fs", it) }}"
+    val activeBoosts = buildList {
+        state.activeShotBoost?.let { boost ->
+            val description = if (boost == BoostType.NUCLEAR) {
+                "Shots left: ${state.nuclearShotsRemaining}"
+            } else {
+                "Time: ${formatBoostTime(state.shotBoostRemaining)}"
+            }
+            add(boost to description)
+        }
+
+        if (state.shieldActive) {
+            add(BoostType.SHIELD to "Time: ${formatBoostTime(state.shieldRemaining)}")
+        }
+
+        if (state.slowRemaining > 0) {
+            add(BoostType.SLOW_TIME to "Time: ${formatBoostTime(state.slowRemaining)}")
+        }
     }
 
-    Row(
+    if (activeBoosts.isEmpty()) return
+
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
             .background(Color(0x3300C4FF), RoundedCornerShape(12.dp))
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 12.dp, vertical = 10.dp)
     ) {
-        Image(
-            painter = painterResource(id = boost.icon),
-            contentDescription = null,
-            modifier = Modifier
-                .size(32.dp)
-                .padding(end = 8.dp)
-        )
-        Column {
-            OutlinedText(text = "Bonus: $boostName", style = MaterialTheme.typography.bodyLarge)
-            OutlinedText(text = description, style = MaterialTheme.typography.bodyMedium)
+        activeBoosts.forEach { (boost, description) ->
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 2.dp)) {
+                Image(
+                    painter = painterResource(id = boost.icon),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(32.dp)
+                        .padding(end = 8.dp)
+                )
+                Column {
+                    val boostName = boost.name.lowercase().replaceFirstChar { it.titlecase() }
+                    OutlinedText(text = "Bonus: $boostName", style = MaterialTheme.typography.bodyLarge)
+                    OutlinedText(text = description, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
         }
     }
+}
+
+private fun formatBoostTime(remaining: Long): String {
+    return (remaining / 1000f).coerceAtLeast(0f).let { String.format("%.1fs", it) }
 }
 
 @Composable

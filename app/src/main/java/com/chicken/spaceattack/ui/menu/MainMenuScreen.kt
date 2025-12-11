@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -25,13 +26,16 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.chicken.spaceattack.R
 import com.chicken.spaceattack.audio.AudioController
-import com.chicken.spaceattack.domain.UpgradeState
-import com.chicken.spaceattack.ui.menu.MenuViewModel
 import com.chicken.spaceattack.ui.components.OutlinedText
 import com.chicken.spaceattack.ui.components.PrimaryButton
 
 @Composable
-fun MainMenuScreen(audioController: AudioController, viewModel: MenuViewModel, onStart: () -> Unit) {
+fun MainMenuScreen(
+    audioController: AudioController,
+    viewModel: MenuViewModel,
+    onStart: () -> Unit,
+    onOpenUpgrades: () -> Unit
+) {
     val upgradeState by viewModel.state.collectAsState()
     Box(
         modifier = Modifier
@@ -69,17 +73,17 @@ fun MainMenuScreen(audioController: AudioController, viewModel: MenuViewModel, o
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            UpgradeShop(
-                state = upgradeState,
-                onUpgradeShield = viewModel::upgradeShield,
-                onUpgradeNuclear = viewModel::upgradeNuclear
+            PrimaryButton(
+                text = "Upgrades",
+                modifier = Modifier.fillMaxWidth(0.8f),
+                onClick = onOpenUpgrades
             )
         }
     }
 }
 
 @Composable
-private fun CoinBadge(coins: Int) {
+fun CoinBadge(coins: Int) {
     Box(
         modifier = Modifier
             .shadow(6.dp, CircleShape)
@@ -102,55 +106,17 @@ private fun CoinBadge(coins: Int) {
 }
 
 @Composable
-private fun UpgradeShop(
-    state: UpgradeState,
-    onUpgradeShield: () -> Unit,
-    onUpgradeNuclear: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        OutlinedText(text = "Upgrade Shop", style = MaterialTheme.typography.displayMedium)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            UpgradeCard(
-                title = "Shield Booster",
-                description = "Duration ${shieldDurationForLevel(state.shieldLevel)}s",
-                level = state.shieldLevel,
-                cost = state.shieldLevel * 120,
-                canAfford = state.coins >= state.shieldLevel * 120,
-                onUpgrade = onUpgradeShield
-            )
-            UpgradeCard(
-                title = "Nuclear Shots",
-                description = "Shots x${nuclearShotsForLevel(state.nuclearLevel)}",
-                level = state.nuclearLevel,
-                cost = state.nuclearLevel * 120,
-                canAfford = state.coins >= state.nuclearLevel * 120,
-                onUpgrade = onUpgradeNuclear
-            )
-        }
-    }
-}
-
-@Composable
-private fun UpgradeCard(
+fun UpgradeCard(
     title: String,
     description: String,
     level: Int,
     cost: Int,
     canAfford: Boolean,
-    onUpgrade: () -> Unit
+    onUpgrade: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .padding(6.dp)
             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f), RoundedCornerShape(12.dp))
             .padding(horizontal = 14.dp, vertical = 12.dp),
@@ -171,13 +137,13 @@ private fun UpgradeCard(
     }
 }
 
-private fun shieldDurationForLevel(level: Int): Int = when (level) {
+fun shieldDurationForLevel(level: Int): Int = when (level) {
     1 -> 5
     2 -> 7
     else -> 9
 }
 
-private fun nuclearShotsForLevel(level: Int): Int = when (level) {
+fun nuclearShotsForLevel(level: Int): Int = when (level) {
     1 -> 2
     2 -> 3
     else -> 5
