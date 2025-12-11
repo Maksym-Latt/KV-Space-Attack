@@ -1,5 +1,6 @@
 package com.chicken.spaceattack.ui.menu
 
+import android.R.attr.text
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -28,219 +29,80 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.chicken.spaceattack.R
 import com.chicken.spaceattack.audio.AudioController
-import com.chicken.spaceattack.ui.components.CircleIconButton
+import com.chicken.spaceattack.ui.components.BalanceBubble
+import com.chicken.spaceattack.ui.components.CapsuleIconButton
+import com.chicken.spaceattack.ui.components.CoinBadge
 import com.chicken.spaceattack.ui.components.OutlinedText
 import com.chicken.spaceattack.ui.components.PrimaryButton
 
 @Composable
 fun MainMenuScreen(
-        audioController: AudioController,
-        viewModel: MenuViewModel,
-        onStart: () -> Unit,
-        onOpenUpgrades: () -> Unit
+    coins: Int,
+    onPlay: () -> Unit,
+    onShop: () -> Unit,
+    onTrophies: () -> Unit,
 ) {
-    val upgradeState by viewModel.state.collectAsState()
-    var showSettings by remember { mutableStateOf(false) }
-
     Box(
-            modifier =
-                    Modifier.fillMaxSize()
-                            .background(
-                                    brush =
-                                            Brush.verticalGradient(
-                                                    listOf(
-                                                            MaterialTheme.colorScheme.background,
-                                                            MaterialTheme.colorScheme.surface
-                                                    )
-                                            )
-                            )
-                            .padding(24.dp)
+        modifier = Modifier
+            .fillMaxSize()
+
     ) {
-        // Settings button in top-left corner
-        CircleIconButton(
-                icon = R.drawable.ic_launcher_foreground,
-                onClick = { showSettings = true },
-                modifier = Modifier.align(Alignment.TopStart)
+        BalanceBubble(
+            coins = coins,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 36.dp, end = 24.dp)
         )
 
         Column(
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-        ) {
-            Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically
-            ) { CoinBadge(coins = upgradeState.coins) }
-            Image(
-                    painter = painterResource(id = R.drawable.logo),
-                    contentDescription = null,
-                    modifier = Modifier.padding(top = 12.dp, bottom = 18.dp).size(220.dp)
-            )
-            PrimaryButton(text = "Play", modifier = Modifier.fillMaxWidth(0.8f)) {
-                audioController.playGameMusic()
-                onStart()
-            }
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            PrimaryButton(
-                    text = "Upgrades",
-                    modifier = Modifier.fillMaxWidth(0.8f),
-                    onClick = onOpenUpgrades
-            )
-        }
-
-        // Settings overlay
-        if (showSettings) {
-            SettingsOverlay(audioController = audioController, onClose = { showSettings = false })
-        }
-    }
-}
-
-@Composable
-fun CoinBadge(coins: Int) {
-    Box(
-            modifier =
-                    Modifier.shadow(6.dp, CircleShape)
-                            .background(MaterialTheme.colorScheme.surface, CircleShape)
-                            .padding(horizontal = 14.dp, vertical = 10.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Image(
-                    painter = painterResource(id = R.drawable.coin),
-                    contentDescription = null,
-                    modifier = Modifier.size(26.dp)
-            )
-            OutlinedText(
-                    text = coins.toString(),
-                    modifier = Modifier.padding(start = 6.dp),
-                    style = MaterialTheme.typography.displaySmall
-            )
-        }
-    }
-}
-
-@Composable
-fun UpgradeCard(
-        title: String,
-        description: String,
-        level: Int,
-        cost: Int,
-        canAfford: Boolean,
-        onUpgrade: () -> Unit,
-        modifier: Modifier = Modifier
-) {
-    Column(
-            modifier =
-                    modifier.padding(6.dp)
-                            .background(
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
-                                    RoundedCornerShape(12.dp)
-                            )
-                            .padding(horizontal = 14.dp, vertical = 12.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        OutlinedText(text = title, style = MaterialTheme.typography.displaySmall)
-        OutlinedText(text = "Level $level", style = MaterialTheme.typography.bodyLarge)
-        OutlinedText(text = description, style = MaterialTheme.typography.bodyMedium)
-
-        val isMaxLevel = level >= 3
-        val buttonText = if (isMaxLevel) "Maxed" else "Upgrade ($cost)"
-        PrimaryButton(
-                text = buttonText,
-                onClick = { if (!isMaxLevel && canAfford) onUpgrade },
-                modifier = Modifier.padding(top = 8.dp)
-        )
-    }
-}
-
-fun shieldDurationForLevel(level: Int): Int =
-        when (level) {
-            1 -> 5
-            2 -> 7
-            else -> 9
-        }
-
-fun nuclearShotsForLevel(level: Int): Int =
-        when (level) {
-            1 -> 2
-            2 -> 3
-            else -> 5
-        }
-
-fun lightningDurationForLevel(level: Int): Int =
-        when (level) {
-            1 -> 6
-            2 -> 8
-            else -> 10
-        }
-
-fun slowTimeDurationForLevel(level: Int): Int =
-        when (level) {
-            1 -> 5
-            2 -> 7
-            else -> 9
-        }
-
-@Composable
-private fun SettingsOverlay(audioController: AudioController, onClose: () -> Unit) {
-    Box(
-            modifier = Modifier.fillMaxSize().background(Color(0x99000000)),
-            contentAlignment = Alignment.Center
-    ) {
-        Column(
-                modifier =
-                        Modifier.clip(RoundedCornerShape(24.dp))
-                                .background(MaterialTheme.colorScheme.primary)
-                                .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            OutlinedText(text = "SETTINGS", style = MaterialTheme.typography.displayMedium)
+            Spacer(modifier = Modifier.height(90.dp))
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Image(
+                painter = painterResource(id = R.drawable.menu_chicken),
+                contentDescription = null,
+                modifier = Modifier
+                    .width(260.dp)
+                    .height(140.dp)
+            )
 
-            // Music toggle
-            Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedText(text = "Music", style = MaterialTheme.typography.bodyLarge)
-                PrimaryButton(
-                        text = if (audioController.isMusicEnabled) "ON" else "OFF",
-                        onClick = { audioController.toggleMusic() },
-                        modifier = Modifier.width(80.dp)
-                )
-            }
-
-            // Sound toggle
-            Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedText(text = "Sound", style = MaterialTheme.typography.bodyLarge)
-                PrimaryButton(
-                        text = if (audioController.isSoundEnabled) "ON" else "OFF",
-                        onClick = { audioController.toggleSound() },
-                        modifier = Modifier.width(80.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(50.dp))
 
             PrimaryButton(
-                    text = "Back",
-                    background = MaterialTheme.colorScheme.secondary,
-                    onClick = onClose,
-                    modifier = Modifier.padding(top = 4.dp)
+                text = "PLAY",
+                modifier = Modifier
+                    .fillMaxWidth(0.7f),
+                onClick = onPlay
             )
+
+            Spacer(modifier = Modifier.height(80.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                CapsuleIconButton(
+                    icon = R.drawable.ic_settings,
+                    onClick = onShop
+                )
+                CapsuleIconButton(
+                    icon = R.drawable.ic_trophy,
+                    onClick = onTrophies
+                )
+                CapsuleIconButton(
+                    icon = R.drawable.ic_bag,
+                    onClick = onInventory
+                )
+            }
         }
     }
 }

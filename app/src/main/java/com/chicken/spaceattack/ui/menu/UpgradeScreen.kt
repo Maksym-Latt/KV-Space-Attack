@@ -19,8 +19,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
+import com.chicken.spaceattack.ui.components.CoinBadge
 import com.chicken.spaceattack.ui.components.OutlinedText
 import com.chicken.spaceattack.ui.components.PrimaryButton
+import com.chicken.spaceattack.ui.components.UpgradeCard
+import com.chicken.spaceattack.ui.components.lightningDurationForLevel
+import com.chicken.spaceattack.ui.components.nuclearShotsForLevel
+import com.chicken.spaceattack.ui.components.shieldDurationForLevel
+import com.chicken.spaceattack.ui.components.slowTimeDurationForLevel
 
 @Composable
 fun UpgradeScreen(viewModel: MenuViewModel, onBack: () -> Unit) {

@@ -52,7 +52,7 @@ import com.chicken.spaceattack.domain.model.BoostType
 import com.chicken.spaceattack.domain.model.Explosion
 import com.chicken.spaceattack.domain.model.EnemyType
 import com.chicken.spaceattack.domain.model.Position
-import com.chicken.spaceattack.ui.components.CircleIconButton
+import com.chicken.spaceattack.ui.components.CapsuleIconButton
 import com.chicken.spaceattack.ui.components.OutlinedText
 import com.chicken.spaceattack.ui.components.PrimaryButton
 import kotlin.math.min
@@ -323,7 +323,7 @@ private fun Hud(state: GameUiState, onPause: () -> Unit) {
 
                         Spacer(modifier = Modifier.weight(1f))
 
-                        CircleIconButton(
+                        CapsuleIconButton(
                                 icon = R.drawable.ic_launcher_foreground,
                                 onClick = onPause
                         )
