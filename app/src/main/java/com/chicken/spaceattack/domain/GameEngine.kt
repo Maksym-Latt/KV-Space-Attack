@@ -2,7 +2,6 @@ package com.chicken.spaceattack.domain
 
 import com.chicken.spaceattack.domain.config.GameConfig
 import com.chicken.spaceattack.domain.model.Boost
-import com.chicken.spaceattack.domain.model.BoostType
 import com.chicken.spaceattack.domain.model.Enemy
 import com.chicken.spaceattack.domain.model.EnemyType
 import com.chicken.spaceattack.domain.model.LevelConfig
@@ -15,26 +14,29 @@ import kotlin.random.Random
 class GameEngine {
     private val horizontalBounds = 0f..1f
     private val verticalBounds = 0f..1f
-    private val formationStartY = 0.2f
+    private val formationStartY = 0.28f
     private val formationSpacingY = 0.08f
-    private val formationColumns = 6
+    private val formationColumns = 5 // Reduced from 6 to create more space
 
-    private val levelConfigs = listOf(
-        LevelConfig(level = 1, smallEnemies = 12, mediumEnemies = 4),
-        LevelConfig(level = 2, smallEnemies = 8, mediumEnemies = 8),
-        LevelConfig(level = 3, smallEnemies = 6, mediumEnemies = 10),
-        LevelConfig(level = 4, smallEnemies = 0, mediumEnemies = 0, boss = true)
-    )
+    private val levelConfigs =
+            listOf(
+                    LevelConfig(level = 1, smallEnemies = 12, mediumEnemies = 4),
+                    LevelConfig(level = 2, smallEnemies = 8, mediumEnemies = 8),
+                    LevelConfig(level = 3, smallEnemies = 6, mediumEnemies = 10),
+                    LevelConfig(level = 4, smallEnemies = 0, mediumEnemies = 0, boss = true)
+            )
 
     fun initialEnemies() = spawnLevel(levelConfigs.first())
 
     fun nextLevel(currentLevel: Int): Pair<Int, List<Enemy>>? {
-        val config = levelConfigs.getOrNull(levelConfigs.indexOfFirst { it.level == currentLevel } + 1)
-            ?: return null
+        val config =
+                levelConfigs.getOrNull(levelConfigs.indexOfFirst { it.level == currentLevel } + 1)
+                        ?: return null
         return config.level to spawnLevel(config)
     }
 
-    fun currentLevelConfig(level: Int) = levelConfigs.firstOrNull { it.level == level } ?: levelConfigs.last()
+    fun currentLevelConfig(level: Int) =
+            levelConfigs.firstOrNull { it.level == level } ?: levelConfigs.last()
 
     private fun spawnLevel(config: LevelConfig): List<Enemy> {
         val totalEnemies = config.smallEnemies + config.mediumEnemies
@@ -51,21 +53,26 @@ class GameEngine {
         }
 
         val pattern = FormationPattern.entries.random()
-        val assignedTypes = when (pattern) {
-            FormationPattern.FRONT_RED_BACK_BLUE -> frontRedBackBlue(config, slots.size)
-            FormationPattern.CHECKERBOARD -> checkerboard(config, slots)
-            FormationPattern.RED_SIDES -> redSides(config, slots)
-        }
+        val assignedTypes =
+                when (pattern) {
+                    FormationPattern.FRONT_RED_BACK_BLUE -> frontRedBackBlue(config, slots.size)
+                    FormationPattern.CHECKERBOARD -> checkerboard(config, slots)
+                    FormationPattern.RED_SIDES -> redSides(config, slots)
+                }
 
-        val enemies = slots.mapIndexed { index, slot ->
-            Enemy(
-                type = assignedTypes.getOrElse(index) { EnemyType.SMALL },
-                position = slot.position
-            )
-        }.toMutableList()
+        val enemies =
+                slots
+                        .mapIndexed { index, slot ->
+                            Enemy(
+                                    type = assignedTypes.getOrElse(index) { EnemyType.SMALL },
+                                    position = slot.position
+                            )
+                        }
+                        .toMutableList()
 
         if (config.boss) {
-            enemies += Enemy(type = EnemyType.BOSS, position = Position(0.5f, 0.18f), direction = 1f)
+            enemies +=
+                    Enemy(type = EnemyType.BOSS, position = Position(0.5f, 0.18f), direction = 1f)
         }
         return enemies
     }
@@ -79,12 +86,10 @@ class GameEngine {
                     remainingMedium--
                     EnemyType.MEDIUM
                 }
-
                 remainingSmall > 0 -> {
                     remainingSmall--
                     EnemyType.SMALL
                 }
-
                 else -> EnemyType.SMALL
             }
         }
@@ -100,17 +105,14 @@ class GameEngine {
                     remainingMedium--
                     EnemyType.MEDIUM
                 }
-
                 remainingSmall > 0 -> {
                     remainingSmall--
                     EnemyType.SMALL
                 }
-
                 remainingMedium > 0 -> {
                     remainingMedium--
                     EnemyType.MEDIUM
                 }
-
                 else -> EnemyType.SMALL
             }
         }
@@ -126,84 +128,97 @@ class GameEngine {
                     remainingMedium--
                     EnemyType.MEDIUM
                 }
-
                 remainingSmall > 0 -> {
                     remainingSmall--
                     EnemyType.SMALL
                 }
-
                 remainingMedium > 0 -> {
                     remainingMedium--
                     EnemyType.MEDIUM
                 }
-
                 else -> EnemyType.SMALL
             }
         }
     }
 
     private fun gridPosition(row: Int, column: Int): Position {
-        val spacingX = 1f / 7f
-        val startX = spacingX
-        val x = startX + column * spacingX
+        // Spread enemies across full screen width with even spacing
+        val leftMargin = 0.05f // 5% margin from left edge
+        val rightMargin = 0.05f // 5% margin from right edge
+        val usableWidth = 1f - leftMargin - rightMargin // 0.9 (90% of screen)
+        val spacingX = usableWidth / (formationColumns - 1) // Space between enemies
+        val x = leftMargin + (column * spacingX)
         val y = formationStartY + row * formationSpacingY
         return Position(x, y)
     }
 
     fun updateEnemies(
-        enemies: List<Enemy>,
-        deltaMillis: Long,
-        speedModifier: Float,
-        direction: Float
+            enemies: List<Enemy>,
+            deltaMillis: Long,
+            speedModifier: Float,
+            direction: Float
     ): EnemyMovement {
         val delta = deltaMillis / 1000f
-        val horizontalSpeed = GameConfig.Movement.enemyFormationHorizontalSpeed * direction * delta * speedModifier
-        val passiveDescent = GameConfig.Movement.enemyFormationPassiveDescentSpeed * delta * speedModifier
+        val horizontalSpeed =
+                GameConfig.Movement.enemyFormationHorizontalSpeed *
+                        direction *
+                        delta *
+                        speedModifier
+        val passiveDescent =
+                GameConfig.Movement.enemyFormationPassiveDescentSpeed * delta * speedModifier
 
         var needsDescent = false
-        val moved = enemies.map { enemy ->
-            val newX = (enemy.position.x + horizontalSpeed).coerceIn(horizontalBounds)
-            val newY = (enemy.position.y + passiveDescent).coerceAtMost(verticalBounds.endInclusive)
-            needsDescent = needsDescent || newX <= horizontalBounds.start || newX >= horizontalBounds.endInclusive
-            enemy.copy(
-                position = Position(newX, newY),
-                direction = direction
-            )
-        }
+        val moved =
+                enemies.map { enemy ->
+                    val newX = (enemy.position.x + horizontalSpeed).coerceIn(horizontalBounds)
+                    val newY =
+                            (enemy.position.y + passiveDescent).coerceAtMost(
+                                    verticalBounds.endInclusive
+                            )
+                    needsDescent =
+                            needsDescent ||
+                                    newX <= horizontalBounds.start ||
+                                    newX >= horizontalBounds.endInclusive
+                    enemy.copy(position = Position(newX, newY), direction = direction)
+                }
 
         var newDirection = direction
-        val finalEnemies = if (needsDescent) {
-            newDirection *= -1f
-            val descent = GameConfig.Movement.enemyFormationDescentSpeed * delta * speedModifier
-            moved.map { enemy ->
-                enemy.copy(
-                    position = Position(
-                        enemy.position.x,
-                        (enemy.position.y + descent).coerceAtMost(verticalBounds.endInclusive)
-                    ),
-                    direction = newDirection
-                )
-            }
-        } else {
-            moved
-        }
+        val finalEnemies =
+                if (needsDescent) {
+                    newDirection *= -1f
+                    val descent =
+                            GameConfig.Movement.enemyFormationDescentSpeed * delta * speedModifier
+                    moved.map { enemy ->
+                        enemy.copy(
+                                position =
+                                        Position(
+                                                enemy.position.x,
+                                                (enemy.position.y + descent).coerceAtMost(
+                                                        verticalBounds.endInclusive
+                                                )
+                                        ),
+                                direction = newDirection
+                        )
+                    }
+                } else {
+                    moved
+                }
 
         return EnemyMovement(finalEnemies, newDirection)
     }
 
     fun tickProjectiles(projectiles: List<Projectile>, deltaMillis: Long): List<Projectile> {
         val delta = deltaMillis / 1000f
-        return projectiles.map { projectile ->
-            val newX = projectile.position.x + projectile.velocity.x * delta
-            val newY = projectile.position.y + projectile.velocity.y * delta
-            projectile.copy(position = Position(newX, newY))
-        }.filter { it.position.y in verticalBounds }
+        return projectiles
+                .map { projectile ->
+                    val newX = projectile.position.x + projectile.velocity.x * delta
+                    val newY = projectile.position.y + projectile.velocity.y * delta
+                    projectile.copy(position = Position(newX, newY))
+                }
+                .filter { it.position.y in verticalBounds }
     }
 
-    fun resolveHits(
-        enemies: List<Enemy>,
-        projectiles: List<Projectile>
-    ): HitResult {
+    fun resolveHits(enemies: List<Enemy>, projectiles: List<Projectile>): HitResult {
         val remainingProjectiles = projectiles.toMutableList()
         val updatedEnemies = enemies.toMutableList()
         val destroyed = mutableListOf<Enemy>()
@@ -213,14 +228,17 @@ class GameEngine {
         while (iterator.hasNext()) {
             val projectile = iterator.next()
             if (!projectile.isPlayer) continue
-            val hit = updatedEnemies.firstOrNull {
-                collides(
-                    projectile.position,
-                    it.position,
-                    radius =
-                    (GameConfig.Collision.enemyRadius + GameConfig.Collision.projectileRadius) * GameConfig.Collision.colliderScale
-                )
-            }
+            val hit =
+                    updatedEnemies.firstOrNull {
+                        collides(
+                                projectile.position,
+                                it.position,
+                                radius =
+                                        (GameConfig.Collision.enemyRadius +
+                                                GameConfig.Collision.projectileRadius) *
+                                                GameConfig.Collision.colliderScale
+                        )
+                    }
             if (hit != null) {
                 iterator.remove()
                 val newHealth = hit.health - projectile.damage
@@ -236,17 +254,17 @@ class GameEngine {
         }
 
         return HitResult(
-            enemies = updatedEnemies,
-            destroyed = destroyed,
-            hits = hits,
-            projectiles = remainingProjectiles
+                enemies = updatedEnemies,
+                destroyed = destroyed,
+                hits = hits,
+                projectiles = remainingProjectiles
         )
     }
 
     fun resolvePlayerHits(
-        playerPosition: Position,
-        playerRadius: Float,
-        projectiles: List<Projectile>
+            playerPosition: Position,
+            playerRadius: Float,
+            projectiles: List<Projectile>
     ): PlayerHitResult {
         val remaining = projectiles.toMutableList()
         var hit = false
@@ -255,7 +273,8 @@ class GameEngine {
             val projectile = iterator.next()
             if (projectile.isPlayer) continue
             val scaledRadius =
-                (playerRadius + GameConfig.Collision.projectileRadius) * GameConfig.Collision.colliderScale
+                    (playerRadius + GameConfig.Collision.projectileRadius) *
+                            GameConfig.Collision.colliderScale
             if (collides(playerPosition, projectile.position, scaledRadius)) {
                 hit = true
                 iterator.remove()
@@ -264,32 +283,38 @@ class GameEngine {
         return PlayerHitResult(remaining, hit)
     }
 
-    fun spawnEnemyShots(enemies: List<Enemy>, chance: Float, speedModifier: Float): List<Projectile> {
+    fun spawnEnemyShots(
+            enemies: List<Enemy>,
+            chance: Float,
+            speedModifier: Float
+    ): List<Projectile> {
         if (enemies.isEmpty()) return emptyList()
         val shouldShoot = Random.nextFloat() < chance
         if (!shouldShoot) return emptyList()
         val shooter = enemies.random()
         val speed = GameConfig.Projectiles.enemyProjectileSpeeds[shooter.type] ?: 0.3f
         return listOf(
-            Projectile(
-                position = shooter.position,
-                velocity = Position(0f, speed * speedModifier),
-                isPlayer = false,
-                sprite = when (shooter.type) {
-                    EnemyType.BOSS -> com.chicken.spaceattack.R.drawable.nuclear_shot
-                    else -> com.chicken.spaceattack.R.drawable.lightning_shot
-                }
-            )
+                Projectile(
+                        position = shooter.position,
+                        velocity = Position(0f, speed * speedModifier),
+                        isPlayer = false,
+                        sprite =
+                                when (shooter.type) {
+                                    EnemyType.BOSS ->
+                                            com.chicken.spaceattack.R.drawable.nuclear_shot
+                                    else -> com.chicken.spaceattack.R.drawable.lightning_shot
+                                }
+                )
         )
     }
 
     fun spawnPlayerShot(position: Position, shotType: ShotType): Projectile {
         return Projectile(
-            position = Position(position.x, position.y - 0.05f),
-            velocity = Position(0f, GameConfig.Projectiles.playerProjectileSpeed),
-            isPlayer = true,
-            damage = shotType.damage,
-            sprite = shotType.sprite
+                position = Position(position.x, position.y - 0.05f),
+                velocity = Position(0f, GameConfig.Projectiles.playerProjectileSpeed),
+                isPlayer = true,
+                damage = shotType.damage,
+                sprite = shotType.sprite
         )
     }
 
@@ -313,16 +338,18 @@ class GameEngine {
             if (remaining <= 0) return@mapNotNull null
 
             val newY = boost.position.y + fallDistance
-            if (newY > verticalBounds.endInclusive + GameConfig.Collision.boostRadius) return@mapNotNull null
+            if (newY > verticalBounds.endInclusive + GameConfig.Collision.boostRadius)
+                    return@mapNotNull null
 
-            boost.copy(
-                position = Position(boost.position.x, newY),
-                ttlMillis = remaining
-            )
+            boost.copy(position = Position(boost.position.x, newY), ttlMillis = remaining)
         }
     }
 
-    private enum class FormationPattern { FRONT_RED_BACK_BLUE, CHECKERBOARD, RED_SIDES }
+    private enum class FormationPattern {
+        FRONT_RED_BACK_BLUE,
+        CHECKERBOARD,
+        RED_SIDES
+    }
 
     private data class FormationSlot(val row: Int, val column: Int, val position: Position)
 
@@ -333,10 +360,10 @@ class GameEngine {
     data class EnemyMovement(val enemies: List<Enemy>, val direction: Float)
 
     data class HitResult(
-        val enemies: List<Enemy>,
-        val destroyed: List<Enemy>,
-        val hits: List<Enemy>,
-        val projectiles: List<Projectile>
+            val enemies: List<Enemy>,
+            val destroyed: List<Enemy>,
+            val hits: List<Enemy>,
+            val projectiles: List<Projectile>
     )
 
     data class PlayerHitResult(val projectiles: List<Projectile>, val hit: Boolean)

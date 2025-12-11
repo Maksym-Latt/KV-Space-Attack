@@ -25,4 +25,12 @@ class MenuViewModel @Inject constructor(
     fun upgradeNuclear() {
         upgradeRepository.upgradeNuclear()
     }
+
+    fun upgradeLightning() {
+        upgradeRepository.upgradeLightning()
+    }
+
+    fun upgradeSlowTime() {
+        upgradeRepository.upgradeSlowTime()
+    }
 }

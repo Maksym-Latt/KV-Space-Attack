@@ -84,6 +84,26 @@ fun UpgradeScreen(viewModel: MenuViewModel, onBack: () -> Unit) {
                 modifier = Modifier.fillMaxWidth()
             )
 
+            UpgradeCard(
+                title = "Lightning Booster",
+                description = "Duration ${lightningDurationForLevel(state.lightningLevel)}s",
+                level = state.lightningLevel,
+                cost = state.lightningLevel * 120,
+                canAfford = state.coins >= state.lightningLevel * 120,
+                onUpgrade = viewModel::upgradeLightning,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            UpgradeCard(
+                title = "Slow Time Booster",
+                description = "Duration ${slowTimeDurationForLevel(state.slowTimeLevel)}s",
+                level = state.slowTimeLevel,
+                cost = state.slowTimeLevel * 120,
+                canAfford = state.coins >= state.slowTimeLevel * 120,
+                onUpgrade = viewModel::upgradeSlowTime,
+                modifier = Modifier.fillMaxWidth()
+            )
+
             Spacer(modifier = Modifier.height(12.dp))
         }
     }

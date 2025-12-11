@@ -7,6 +7,8 @@ import kotlinx.coroutines.flow.asStateFlow
 class UpgradeRepository {
     private val shieldDurations = listOf(5_000L, 7_000L, 9_000L)
     private val nuclearShotBundles = listOf(2, 3, 5)
+    private val lightningDurations = listOf(6_000L, 8_000L, 10_000L)
+    private val slowTimeDurations = listOf(5_000L, 7_000L, 9_000L)
     private val baseCost = 120
 
     private val _state = MutableStateFlow(UpgradeState())
@@ -17,6 +19,10 @@ class UpgradeRepository {
     fun shieldDurationMillis(): Long = shieldDurations[_state.value.shieldLevel - 1]
 
     fun nuclearShots(): Int = nuclearShotBundles[_state.value.nuclearLevel - 1]
+
+    fun lightningDurationMillis(): Long = lightningDurations[_state.value.lightningLevel - 1]
+
+    fun slowTimeDurationMillis(): Long = slowTimeDurations[_state.value.slowTimeLevel - 1]
 
     fun upgradeShield() {
         updateIfPossible(
@@ -36,6 +42,24 @@ class UpgradeRepository {
         }
     }
 
+    fun upgradeLightning() {
+        updateIfPossible(
+            canUpgrade = _state.value.lightningLevel < lightningDurations.size,
+            cost = upgradeCost(_state.value.lightningLevel),
+        ) { state ->
+            state.copy(lightningLevel = state.lightningLevel + 1)
+        }
+    }
+
+    fun upgradeSlowTime() {
+        updateIfPossible(
+            canUpgrade = _state.value.slowTimeLevel < slowTimeDurations.size,
+            cost = upgradeCost(_state.value.slowTimeLevel),
+        ) { state ->
+            state.copy(slowTimeLevel = state.slowTimeLevel + 1)
+        }
+    }
+
     private fun upgradeCost(currentLevel: Int): Int = baseCost * currentLevel
 
     private inline fun updateIfPossible(canUpgrade: Boolean, cost: Int, block: (UpgradeState) -> UpgradeState) {
@@ -49,5 +73,7 @@ class UpgradeRepository {
 data class UpgradeState(
     val coins: Int = 320,
     val shieldLevel: Int = 1,
-    val nuclearLevel: Int = 1
+    val nuclearLevel: Int = 1,
+    val lightningLevel: Int = 1,
+    val slowTimeLevel: Int = 1
 )
