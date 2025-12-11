@@ -35,6 +35,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -48,6 +49,7 @@ import com.chicken.spaceattack.R
 import com.chicken.spaceattack.audio.AudioController
 import com.chicken.spaceattack.domain.config.GameConfig
 import com.chicken.spaceattack.domain.model.BoostType
+import com.chicken.spaceattack.domain.model.Explosion
 import com.chicken.spaceattack.domain.model.EnemyType
 import com.chicken.spaceattack.domain.model.Position
 import com.chicken.spaceattack.ui.components.CircleIconButton
@@ -239,24 +241,9 @@ private fun GameContent(
                         )
                 }
 
-                // Render explosions
+                // Render explosions with a small burst animation
                 state.explosions.forEach { explosion ->
-                        val size = 96.dp // Larger than projectiles for visual impact
-                        Image(
-                                painter = painterResource(id = explosion.sprite),
-                                contentDescription = null,
-                                modifier =
-                                        Modifier.size(size)
-                                                .align(Alignment.TopStart)
-                                                .then(
-                                                        positioned(
-                                                                explosion.position.x,
-                                                                explosion.position.y,
-                                                                size,
-                                                                size
-                                                        )
-                                                )
-                        )
+                        ExplosionSprite(explosion = explosion, positioned = positioned)
                 }
 
                 state.boosts.forEach { boost ->
@@ -423,6 +410,40 @@ private fun BoxScope.PlayerSprite(
                 }
 
         val size = 120.dp
+        val hitProgress =
+                (state.playerHitEffectMillis.toFloat() / PLAYER_HIT_EFFECT_DURATION.toFloat())
+                        .coerceIn(0f, 1f)
+
+        if (hitProgress > 0f) {
+                Box(
+                        modifier =
+                                Modifier.size(size * 1.6f)
+                                        .align(Alignment.TopStart)
+                                        .then(
+                                                positioned(
+                                                        state.playerX,
+                                                        0.94f,
+                                                        size * 1.6f,
+                                                        size * 1.6f
+                                                )
+                                        )
+                                        .graphicsLayer {
+                                                alpha = 0.35f * hitProgress
+                                                scaleX = 1.05f + 0.25f * hitProgress
+                                                scaleY = 1.05f + 0.25f * hitProgress
+                                        }
+                                        .background(
+                                                Brush.radialGradient(
+                                                        colors =
+                                                                listOf(
+                                                                        Color(0xFFFF6B6B),
+                                                                        Color(0x00FF6B6B)
+                                                                )
+                                                )
+                                        )
+                )
+        }
+
         Image(
                 painter = painterResource(id = spriteRes),
                 contentDescription = null,
@@ -430,6 +451,69 @@ private fun BoxScope.PlayerSprite(
                         Modifier.size(size)
                                 .align(Alignment.TopStart)
                                 .then(positioned(state.playerX, 0.94f, size, size))
+                                .graphicsLayer {
+                                        scaleX = 1f + 0.12f * hitProgress
+                                        scaleY = 1f + 0.12f * hitProgress
+                                        alpha = 1f - 0.2f * hitProgress
+                                }
+        )
+}
+
+@Composable
+private fun BoxScope.ExplosionSprite(
+        explosion: Explosion,
+        positioned: (Float, Float, Dp, Dp) -> Modifier
+) {
+        val size = 96.dp // Larger than projectiles for visual impact
+        val progress =
+                (explosion.remainingMillis.toFloat() / explosion.durationMillis.toFloat())
+                        .coerceIn(0f, 1f)
+        val scale = 1f + 0.35f * (1f - progress)
+
+        Box(
+                modifier =
+                        Modifier.size(size * 1.4f)
+                                .align(Alignment.TopStart)
+                                .then(
+                                        positioned(
+                                                explosion.position.x,
+                                                explosion.position.y,
+                                                size * 1.4f,
+                                                size * 1.4f
+                                        )
+                                )
+                                .graphicsLayer { alpha = 0.35f * progress }
+                                .background(
+                                        Brush.radialGradient(
+                                                colors =
+                                                        listOf(
+                                                                Color(0xFFFFC34D),
+                                                                Color.Transparent
+                                                        )
+                                        )
+                                )
+        )
+
+        Image(
+                painter = painterResource(id = explosion.sprite),
+                contentDescription = null,
+                modifier =
+                        Modifier.size(size)
+                                .align(Alignment.TopStart)
+                                .then(
+                                        positioned(
+                                                explosion.position.x,
+                                                explosion.position.y,
+                                                size,
+                                                size
+                                        )
+                                )
+                                .graphicsLayer {
+                                        this.scaleX = scale
+                                        this.scaleY = scale
+                                        alpha = 0.4f + 0.6f * progress
+                                        rotationZ = (1f - progress) * 14f
+                                }
         )
 }
 

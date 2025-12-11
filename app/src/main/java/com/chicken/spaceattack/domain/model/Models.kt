@@ -62,5 +62,6 @@ data class Explosion(
         val id: String = UUID.randomUUID().toString(),
         val position: Position,
         @DrawableRes val sprite: Int,
-        val remainingMillis: Long = 500L // Explosion lasts 500ms
+        val durationMillis: Long = 500L, // Explosion lasts 500ms
+        val remainingMillis: Long = durationMillis
 )
