@@ -10,6 +10,7 @@ import com.chicken.spaceattack.audio.AudioController
 import com.chicken.spaceattack.ui.game.GameScreen
 import com.chicken.spaceattack.ui.game.GameViewModel
 import com.chicken.spaceattack.ui.menu.MainMenuScreen
+import com.chicken.spaceattack.ui.menu.MenuViewModel
 import com.chicken.spaceattack.ui.splash.LoadingScreen
 
 sealed class Destinations(val route: String) {
@@ -30,8 +31,10 @@ fun AppNavHost(audioController: AudioController, navController: NavHostControlle
             })
         }
         composable(Destinations.Menu.route) {
+            val menuViewModel: MenuViewModel = hiltViewModel()
             MainMenuScreen(
                 audioController = audioController,
+                viewModel = menuViewModel,
                 onStart = {
                     navController.navigate(Destinations.Game.route)
                 }

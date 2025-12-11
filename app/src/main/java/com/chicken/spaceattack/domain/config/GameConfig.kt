@@ -7,6 +7,7 @@ object GameConfig {
     object Movement {
         const val enemyFormationHorizontalSpeed = 0.22f
         const val enemyFormationDescentSpeed = 0.012f
+        const val enemyFormationPassiveDescentSpeed = 0.018f
     }
 
     object Shooting {
@@ -37,9 +38,9 @@ object GameConfig {
     object Collision {
         const val colliderScale = 1.0f
         const val showDebug = false
-        const val enemyRadius = 0.05f
-        const val playerRadius = 0.06f
-        const val boostRadius = 0.05f
-        const val projectileRadius = 0.02f
+        const val enemyRadius = 0.07f
+        const val playerRadius = 0.065f
+        const val boostRadius = 0.055f
+        const val projectileRadius = 0.03f
     }
 }
