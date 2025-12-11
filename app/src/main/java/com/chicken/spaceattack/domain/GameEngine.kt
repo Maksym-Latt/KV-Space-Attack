@@ -1,5 +1,6 @@
 package com.chicken.spaceattack.domain
 
+import com.chicken.spaceattack.domain.config.GameConfig
 import com.chicken.spaceattack.domain.model.Boost
 import com.chicken.spaceattack.domain.model.BoostType
 import com.chicken.spaceattack.domain.model.Enemy
@@ -73,31 +74,43 @@ class GameEngine {
         return Position(x, y)
     }
 
-    fun updateEnemies(enemies: List<Enemy>, deltaMillis: Long, speedModifier: Float): List<Enemy> {
+    fun updateEnemies(
+        enemies: List<Enemy>,
+        deltaMillis: Long,
+        speedModifier: Float,
+        direction: Float
+    ): EnemyMovement {
         val delta = deltaMillis / 1000f
-        return enemies.map { enemy ->
-            val horizontalSpeed = when (enemy.type) {
-                EnemyType.SMALL -> 0.25f
-                EnemyType.MEDIUM -> 0.2f
-                EnemyType.BOSS -> 0.15f
-            } * enemy.direction * delta * speedModifier
+        val horizontalSpeed = GameConfig.Movement.enemyFormationHorizontalSpeed * direction * delta * speedModifier
 
+        var needsDescent = false
+        val moved = enemies.map { enemy ->
             val newX = (enemy.position.x + horizontalSpeed).coerceIn(horizontalBounds)
-            val newDirection = when {
-                newX <= horizontalBounds.start -> 1f
-                newX >= horizontalBounds.endInclusive -> -1f
-                else -> enemy.direction
-            }
-            val descent = when (enemy.type) {
-                EnemyType.SMALL -> 0.02f
-                EnemyType.MEDIUM -> 0.018f
-                EnemyType.BOSS -> 0.01f
-            } * delta * speedModifier
+            needsDescent = needsDescent || newX <= horizontalBounds.start || newX >= horizontalBounds.endInclusive
             enemy.copy(
-                position = Position(newX, (enemy.position.y + descent).coerceAtMost(verticalBounds.endInclusive)),
-                direction = newDirection
+                position = Position(newX, enemy.position.y),
+                direction = direction
             )
         }
+
+        var newDirection = direction
+        val finalEnemies = if (needsDescent) {
+            newDirection *= -1f
+            val descent = GameConfig.Movement.enemyFormationDescentSpeed * delta * speedModifier
+            moved.map { enemy ->
+                enemy.copy(
+                    position = Position(
+                        enemy.position.x,
+                        (enemy.position.y + descent).coerceAtMost(verticalBounds.endInclusive)
+                    ),
+                    direction = newDirection
+                )
+            }
+        } else {
+            moved
+        }
+
+        return EnemyMovement(finalEnemies, newDirection)
     }
 
     fun tickProjectiles(projectiles: List<Projectile>, deltaMillis: Long): List<Projectile> {
@@ -122,7 +135,14 @@ class GameEngine {
         while (iterator.hasNext()) {
             val projectile = iterator.next()
             if (!projectile.isPlayer) continue
-            val hit = updatedEnemies.firstOrNull { collides(projectile.position, it.position, radius = 0.05f) }
+            val hit = updatedEnemies.firstOrNull {
+                collides(
+                    projectile.position,
+                    it.position,
+                    radius =
+                    (GameConfig.Collision.enemyRadius + GameConfig.Collision.projectileRadius) * GameConfig.Collision.colliderScale
+                )
+            }
             if (hit != null) {
                 iterator.remove()
                 val newHealth = hit.health - projectile.damage
@@ -156,7 +176,9 @@ class GameEngine {
         while (iterator.hasNext()) {
             val projectile = iterator.next()
             if (projectile.isPlayer) continue
-            if (collides(playerPosition, projectile.position, playerRadius)) {
+            val scaledRadius =
+                (playerRadius + GameConfig.Collision.projectileRadius) * GameConfig.Collision.colliderScale
+            if (collides(playerPosition, projectile.position, scaledRadius)) {
                 hit = true
                 iterator.remove()
             }
@@ -164,20 +186,16 @@ class GameEngine {
         return PlayerHitResult(remaining, hit)
     }
 
-    fun spawnEnemyShots(enemies: List<Enemy>, chance: Float): List<Projectile> {
+    fun spawnEnemyShots(enemies: List<Enemy>, chance: Float, speedModifier: Float): List<Projectile> {
         if (enemies.isEmpty()) return emptyList()
         val shouldShoot = Random.nextFloat() < chance
         if (!shouldShoot) return emptyList()
         val shooter = enemies.random()
-        val speed = when (shooter.type) {
-            EnemyType.SMALL -> 0.35f
-            EnemyType.MEDIUM -> 0.32f
-            EnemyType.BOSS -> 0.28f
-        }
+        val speed = GameConfig.Projectiles.enemyProjectileSpeeds[shooter.type] ?: 0.3f
         return listOf(
             Projectile(
                 position = shooter.position,
-                velocity = Position(0f, speed),
+                velocity = Position(0f, speed * speedModifier),
                 isPlayer = false,
                 sprite = when (shooter.type) {
                     EnemyType.BOSS -> com.chicken.spaceattack.R.drawable.nuclear_shot
@@ -190,7 +208,7 @@ class GameEngine {
     fun spawnPlayerShot(position: Position, shotType: ShotType): Projectile {
         return Projectile(
             position = Position(position.x, position.y - 0.05f),
-            velocity = Position(0f, -0.7f),
+            velocity = Position(0f, GameConfig.Projectiles.playerProjectileSpeed),
             isPlayer = true,
             damage = shotType.damage,
             sprite = shotType.sprite
@@ -199,26 +217,38 @@ class GameEngine {
 
     fun rollBoost(position: Position): Boost? {
         val roll = Random.nextFloat()
-        val boostType = when {
-            roll < 0.25f -> BoostType.SHIELD
-            roll < 0.45f -> BoostType.SLOW_TIME
-            roll < 0.65f -> BoostType.LIGHTNING
-            roll < 0.75f -> BoostType.NUCLEAR
-            else -> return null
+        var cumulative = 0f
+        GameConfig.Boosts.dropChances.forEach { (type, chance) ->
+            cumulative += chance
+            if (roll < cumulative) {
+                return Boost(type = type, position = position)
+            }
         }
-        return Boost(type = boostType, position = position)
+        return null
     }
 
     fun tickBoosts(boosts: List<Boost>, deltaMillis: Long): List<Boost> {
+        val delta = deltaMillis / 1000f
+        val fallDistance = GameConfig.Boosts.fallSpeed * delta
         return boosts.mapNotNull { boost ->
             val remaining = boost.ttlMillis - deltaMillis
-            if (remaining <= 0) null else boost.copy(ttlMillis = remaining)
+            if (remaining <= 0) return@mapNotNull null
+
+            val newY = boost.position.y + fallDistance
+            if (newY > verticalBounds.endInclusive + GameConfig.Collision.boostRadius) return@mapNotNull null
+
+            boost.copy(
+                position = Position(boost.position.x, newY),
+                ttlMillis = remaining
+            )
         }
     }
 
-    private fun collides(a: Position, b: Position, radius: Float): Boolean {
+    fun collides(a: Position, b: Position, radius: Float): Boolean {
         return hypot(a.x - b.x, a.y - b.y) < radius
     }
+
+    data class EnemyMovement(val enemies: List<Enemy>, val direction: Float)
 
     data class HitResult(
         val enemies: List<Enemy>,

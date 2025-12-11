@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chicken.spaceattack.audio.AudioController
 import com.chicken.spaceattack.domain.GameEngine
+import com.chicken.spaceattack.domain.config.GameConfig
 import com.chicken.spaceattack.domain.model.Boost
 import com.chicken.spaceattack.domain.model.BoostType
 import com.chicken.spaceattack.domain.model.Enemy
@@ -77,29 +78,28 @@ class GameViewModel @Inject constructor(
     }
 
     fun collectBoost(boostId: String) {
-        val current = _state.value
-        val boost = current.boosts.firstOrNull { it.id == boostId } ?: return
-        applyBoost(boost.type)
-        _state.value = current.copy(boosts = current.boosts.filterNot { it.id == boostId })
+        updateState { current ->
+            val boost = current.boosts.firstOrNull { it.id == boostId } ?: return@updateState current
+            val withoutBoost = current.copy(boosts = current.boosts.filterNot { it.id == boostId })
+            applyBoost(type = boost.type, state = withoutBoost)
+        }
     }
 
-    private fun applyBoost(type: BoostType) {
-        updateState { current ->
-            val newShotType = when (type) {
-                BoostType.LIGHTNING -> ShotType.LIGHTNING
-                BoostType.NUCLEAR -> ShotType.NUCLEAR
-                else -> current.shotType
-            }
-            val speedModifier = if (type == BoostType.SLOW_TIME) 0.6f else current.enemySpeedModifier
-            val shield = type == BoostType.SHIELD || current.shieldActive
-            current.copy(
-                shotType = newShotType,
-                enemySpeedModifier = speedModifier,
-                shieldActive = shield,
-                activeBoost = type,
-                activeBoostRemaining = 8000L
-            )
+    private fun applyBoost(type: BoostType, state: GameUiState): GameUiState {
+        val newShotType = when (type) {
+            BoostType.LIGHTNING -> ShotType.LIGHTNING
+            BoostType.NUCLEAR -> ShotType.NUCLEAR
+            else -> state.shotType
         }
+        val speedModifier = if (type == BoostType.SLOW_TIME) 0.6f else state.enemySpeedModifier
+        val shield = type == BoostType.SHIELD || state.shieldActive
+        return state.copy(
+            shotType = newShotType,
+            enemySpeedModifier = speedModifier,
+            shieldActive = shield,
+            activeBoost = type,
+            activeBoostRemaining = GameConfig.Boosts.ttlMillis
+        )
     }
 
     private fun startLoops() {
@@ -119,23 +119,38 @@ class GameViewModel @Inject constructor(
         val current = _state.value
         if (current.phase != GamePhase.RUNNING) return
 
-        val updatedBoosts = engine.tickBoosts(current.boosts, delta)
-        val boostRemaining = (current.activeBoostRemaining - delta).coerceAtLeast(0)
-        val boostExpired = boostRemaining == 0L
-        val shotType = if (boostExpired) ShotType.REGULAR else current.shotType
-        val speedModifier = if (boostExpired && current.activeBoost == BoostType.SLOW_TIME) 1f else current.enemySpeedModifier
-        val shield = if (boostExpired && current.activeBoost == BoostType.SHIELD) false else current.shieldActive
+        val playerPosition = Position(current.playerX, 0.92f)
 
-        val enemies = engine.updateEnemies(current.enemies, delta, speedModifier)
-        val enemyShots = (current.enemyProjectiles + engine.spawnEnemyShots(enemies, chance = 0.01f))
+        val movedBoosts = engine.tickBoosts(current.boosts, delta)
+        val (collectedBoosts, floatingBoosts) = movedBoosts.partition {
+            val collectionRadius =
+                (GameConfig.Collision.playerRadius + GameConfig.Collision.boostRadius) * GameConfig.Collision.colliderScale
+            engine.collides(playerPosition, it.position, collectionRadius)
+        }
+
+        var workingState = current.copy(boosts = floatingBoosts)
+        collectedBoosts.forEach { boost ->
+            workingState = applyBoost(boost.type, workingState)
+        }
+
+        val boostRemaining = (workingState.activeBoostRemaining - delta).coerceAtLeast(0)
+        val boostExpired = boostRemaining == 0L && workingState.activeBoost != null
+        val shotType = if (boostExpired) ShotType.REGULAR else workingState.shotType
+        val speedModifier = if (boostExpired && workingState.activeBoost == BoostType.SLOW_TIME) 1f else workingState.enemySpeedModifier
+        val shield = if (boostExpired && workingState.activeBoost == BoostType.SHIELD) false else workingState.shieldActive
+
+        val movement = engine.updateEnemies(workingState.enemies, delta, speedModifier, workingState.enemyDirection)
+        val enemies = movement.enemies
+        val enemyShots = (workingState.enemyProjectiles +
+            engine.spawnEnemyShots(enemies, chance = GameConfig.Shooting.enemyShotChancePerTick, speedModifier = speedModifier))
             .let { engine.tickProjectiles(it, delta) }
 
         shotCooldown = (shotCooldown - delta).coerceAtLeast(0)
         val playerShots = buildList {
-            addAll(engine.tickProjectiles(current.playerProjectiles, delta))
+            addAll(engine.tickProjectiles(workingState.playerProjectiles, delta))
             if (shotCooldown == 0L) {
                 add(engine.spawnPlayerShot(Position(current.playerX, 0.86f), shotType))
-                shotCooldown = 500L
+                shotCooldown = GameConfig.Shooting.playerShotCooldownMillis
                 audioController.playShot()
             }
         }
@@ -144,7 +159,7 @@ class GameViewModel @Inject constructor(
         var score = current.score + hitResult.destroyed.sumOf { it.type.score }
         val destroyedBoosts = hitResult.destroyed.mapNotNull { engine.rollBoost(it.position) }
 
-        val playerHit = engine.resolvePlayerHits(Position(current.playerX, 0.92f), 0.06f, enemyShots)
+        val playerHit = engine.resolvePlayerHits(playerPosition, GameConfig.Collision.playerRadius, enemyShots)
         val lives = if (playerHit.hit && !shield) current.lives - 1 else current.lives
         val shieldActive = if (playerHit.hit && shield) false else shield
 
@@ -172,14 +187,15 @@ class GameViewModel @Inject constructor(
             enemyProjectiles = playerHit.projectiles,
             score = score,
             lives = lives,
-            boosts = destroyedBoosts + updatedBoosts,
-            activeBoost = if (boostExpired) null else current.activeBoost,
+            boosts = destroyedBoosts + workingState.boosts,
+            activeBoost = if (boostExpired) null else workingState.activeBoost,
             activeBoostRemaining = boostRemaining,
             shotType = shotType,
             enemySpeedModifier = speedModifier,
             shieldActive = shieldActive,
             bossHealth = bossHealth,
             level = nextLevel,
+            enemyDirection = if (nextLevelData != null) 1f else movement.direction,
             phase = if (nextLevelData != null) GamePhase.RUNNING else phase
         )
 
@@ -203,7 +219,8 @@ class GameViewModel @Inject constructor(
         enemies = engine.initialEnemies(),
         playerProjectiles = emptyList(),
         enemyProjectiles = emptyList(),
-        boosts = emptyList()
+        boosts = emptyList(),
+        enemyDirection = 1f
     )
 
     private inline fun updateState(block: (GameUiState) -> GameUiState) {
@@ -226,6 +243,7 @@ data class GameUiState(
     val enemySpeedModifier: Float = 1f,
     val shieldActive: Boolean = false,
     val bossHealth: Float = 0f,
+    val enemyDirection: Float = 1f,
     val phase: GamePhase = GamePhase.RUNNING
 )
 
