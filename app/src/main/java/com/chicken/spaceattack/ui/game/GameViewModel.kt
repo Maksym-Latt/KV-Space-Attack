@@ -10,6 +10,7 @@ import com.chicken.spaceattack.domain.model.Boost
 import com.chicken.spaceattack.domain.model.BoostType
 import com.chicken.spaceattack.domain.model.Enemy
 import com.chicken.spaceattack.domain.model.EnemyType
+import com.chicken.spaceattack.domain.model.Explosion
 import com.chicken.spaceattack.domain.model.Position
 import com.chicken.spaceattack.domain.model.Projectile
 import com.chicken.spaceattack.domain.model.ShotType
@@ -231,6 +232,21 @@ constructor(
         var score = current.score + hitResult.destroyed.sumOf { it.type.score }
         val destroyedBoosts = hitResult.destroyed.mapNotNull { engine.rollBoost(it.position) }
 
+        // Create explosions for destroyed enemies
+        val newExplosions =
+                hitResult.destroyed.map { enemy ->
+                    val explosionSprite =
+                            when (shotType) {
+                                ShotType.NUCLEAR ->
+                                        com.chicken.spaceattack.R.drawable.nuclear_explosion
+                                ShotType.LIGHTNING ->
+                                        com.chicken.spaceattack.R.drawable.lightning_explosion
+                                ShotType.REGULAR ->
+                                        com.chicken.spaceattack.R.drawable.regular_explosion
+                            }
+                    Explosion(position = enemy.position, sprite = explosionSprite)
+                }
+
         val playerHit =
                 engine.resolvePlayerHits(
                         playerPosition,
@@ -287,6 +303,15 @@ constructor(
         val finalEnemies = nextLevelData?.second ?: newEnemies
         val nextLevel = nextLevelData?.first ?: current.level
 
+        // Update explosions - reduce time and remove expired ones
+        val updatedExplosions =
+                (current.explosions + newExplosions).mapNotNull { explosion ->
+                    val remaining = (explosion.remainingMillis - delta).coerceAtLeast(0)
+                    if (remaining > 0) {
+                        explosion.copy(remainingMillis = remaining)
+                    } else null
+                }
+
         val updatedState =
                 current.copy(
                         enemies = finalEnemies,
@@ -295,6 +320,7 @@ constructor(
                         score = score,
                         lives = lives,
                         boosts = destroyedBoosts + bossDamageBoosts + workingState.boosts,
+                        explosions = updatedExplosions,
                         activeShotBoost = activeShotBoost,
                         shotBoostRemaining = shotBoostRemaining,
                         nuclearShotsRemaining = nuclearShotsRemaining,
@@ -349,6 +375,7 @@ data class GameUiState(
         val playerProjectiles: List<Projectile>,
         val enemyProjectiles: List<Projectile>,
         val boosts: List<Boost>,
+        val explosions: List<Explosion> = emptyList(),
         val activeShotBoost: BoostType? = null,
         val shotBoostRemaining: Long = 0L,
         val nuclearShotsRemaining: Int = 0,

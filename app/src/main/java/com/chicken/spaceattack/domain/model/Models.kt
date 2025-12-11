@@ -14,20 +14,20 @@ enum class EnemyType(@DrawableRes val sprite: Int, val health: Int, val score: I
 }
 
 data class Enemy(
-    val id: String = UUID.randomUUID().toString(),
-    val type: EnemyType,
-    val position: Position,
-    val direction: Float = 1f,
-    val health: Int = type.health
+        val id: String = UUID.randomUUID().toString(),
+        val type: EnemyType,
+        val position: Position,
+        val direction: Float = 1f,
+        val health: Int = type.health
 )
 
 data class Projectile(
-    val id: String = UUID.randomUUID().toString(),
-    val position: Position,
-    val velocity: Position,
-    val isPlayer: Boolean,
-    val damage: Int = 1,
-    @DrawableRes val sprite: Int
+        val id: String = UUID.randomUUID().toString(),
+        val position: Position,
+        val velocity: Position,
+        val isPlayer: Boolean,
+        val damage: Int = 1,
+        @DrawableRes val sprite: Int
 )
 
 enum class ShotType(val damage: Int, @DrawableRes val sprite: Int) {
@@ -44,11 +44,23 @@ enum class BoostType(@DrawableRes val icon: Int) {
 }
 
 data class Boost(
-    val id: String = UUID.randomUUID().toString(),
-    val type: BoostType,
-    val position: Position,
-    val isActive: Boolean = false,
-    val ttlMillis: Long = GameConfig.Boosts.ttlMillis
+        val id: String = UUID.randomUUID().toString(),
+        val type: BoostType,
+        val position: Position,
+        val isActive: Boolean = false,
+        val ttlMillis: Long = GameConfig.Boosts.ttlMillis
 )
 
-data class LevelConfig(val level: Int, val smallEnemies: Int, val mediumEnemies: Int, val boss: Boolean = false)
+data class LevelConfig(
+        val level: Int,
+        val smallEnemies: Int,
+        val mediumEnemies: Int,
+        val boss: Boolean = false
+)
+
+data class Explosion(
+        val id: String = UUID.randomUUID().toString(),
+        val position: Position,
+        @DrawableRes val sprite: Int,
+        val remainingMillis: Long = 500L // Explosion lasts 500ms
+)
