@@ -20,7 +20,7 @@ class GameEngine {
         LevelConfig(level = 1, smallEnemies = 12, mediumEnemies = 4),
         LevelConfig(level = 2, smallEnemies = 8, mediumEnemies = 8),
         LevelConfig(level = 3, smallEnemies = 6, mediumEnemies = 10),
-        LevelConfig(level = 4, smallEnemies = 4, mediumEnemies = 8, boss = true)
+        LevelConfig(level = 4, smallEnemies = 0, mediumEnemies = 0, boss = true)
     )
 
     fun initialEnemies() = spawnLevel(levelConfigs.first())
@@ -82,13 +82,15 @@ class GameEngine {
     ): EnemyMovement {
         val delta = deltaMillis / 1000f
         val horizontalSpeed = GameConfig.Movement.enemyFormationHorizontalSpeed * direction * delta * speedModifier
+        val passiveDescent = GameConfig.Movement.enemyFormationPassiveDescentSpeed * delta * speedModifier
 
         var needsDescent = false
         val moved = enemies.map { enemy ->
             val newX = (enemy.position.x + horizontalSpeed).coerceIn(horizontalBounds)
+            val newY = (enemy.position.y + passiveDescent).coerceAtMost(verticalBounds.endInclusive)
             needsDescent = needsDescent || newX <= horizontalBounds.start || newX >= horizontalBounds.endInclusive
             enemy.copy(
-                position = Position(newX, enemy.position.y),
+                position = Position(newX, newY),
                 direction = direction
             )
         }

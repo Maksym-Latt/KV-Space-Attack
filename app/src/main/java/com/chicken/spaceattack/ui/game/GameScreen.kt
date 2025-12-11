@@ -46,6 +46,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.chicken.spaceattack.R
 import com.chicken.spaceattack.domain.config.GameConfig
+import com.chicken.spaceattack.domain.model.BoostType
 import com.chicken.spaceattack.domain.model.EnemyType
 import com.chicken.spaceattack.domain.model.Position
 import com.chicken.spaceattack.ui.components.CircleIconButton
@@ -177,7 +178,11 @@ private fun GameContent(
         )
 
         state.enemies.forEach { enemy ->
-            val size = if (enemy.type == EnemyType.BOSS) 180.dp else 54.dp
+            val size = when (enemy.type) {
+                EnemyType.SMALL -> 68.dp
+                EnemyType.MEDIUM -> 72.dp
+                EnemyType.BOSS -> 216.dp
+            }
             Image(
                 painter = painterResource(id = enemy.type.sprite),
                 contentDescription = null,
@@ -189,7 +194,7 @@ private fun GameContent(
         }
 
         state.playerProjectiles.forEach { projectile ->
-            val size = 32.dp
+            val size = 44.dp
             Image(
                 painter = painterResource(id = projectile.sprite),
                 contentDescription = null,
@@ -201,7 +206,7 @@ private fun GameContent(
         }
 
         state.enemyProjectiles.forEach { projectile ->
-            val size = 32.dp
+            val size = 44.dp
             Image(
                 painter = painterResource(id = projectile.sprite),
                 contentDescription = null,
@@ -247,54 +252,89 @@ private fun Hud(
     state: GameUiState,
     onPause: () -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-            .fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            repeat(3) { index ->
-                val icon = if (index < state.lives) {
-                    R.drawable.egg_life
-                } else {
-                    R.drawable.egg_crack
-                }
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                repeat(3) { index ->
+                    val icon = if (index < state.lives) {
+                        R.drawable.egg_life
+                    } else {
+                        R.drawable.egg_crack
+                    }
 
-                Image(
-                    painter = painterResource(id = icon),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(42.dp)
-                        .padding(end = 6.dp)
+                    Image(
+                        painter = painterResource(id = icon),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(42.dp)
+                            .padding(end = 6.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            Box(
+                modifier = Modifier
+                    .wrapContentSize()
+                    .background(
+                        color = Color(0xFFFFA800),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                OutlinedText(
+                    text = state.score.toString(),
+                    style = MaterialTheme.typography.displaySmall
                 )
             }
-        }
 
-        Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.weight(1f))
 
-        Box(
-            modifier = Modifier
-                .wrapContentSize()
-                .background(
-                    color = Color(0xFFFFA800),
-                    shape = RoundedCornerShape(12.dp)
-                )
-                .padding(horizontal = 16.dp, vertical = 6.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            OutlinedText(
-                text = state.score.toString(),
-                style = MaterialTheme.typography.displaySmall
+            CircleIconButton(
+                icon = R.drawable.ic_launcher_foreground,
+                onClick = onPause
             )
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        ActiveBoostIndicator(state = state)
+    }
+}
 
-        CircleIconButton(
-            icon = R.drawable.ic_launcher_foreground,
-            onClick = onPause
+@Composable
+private fun ActiveBoostIndicator(state: GameUiState) {
+    val boost = state.activeBoost ?: return
+    val boostName = boost.name.lowercase().replaceFirstChar { it.titlecase() }
+    val description = when (boost) {
+        BoostType.NUCLEAR -> "Shots left: ${state.nuclearShotsRemaining}"
+        else -> "Time: ${(state.activeBoostRemaining / 1000f).coerceAtLeast(0f).let { String.format("%.1fs", it) }}"
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .background(Color(0x3300C4FF), RoundedCornerShape(12.dp))
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Image(
+            painter = painterResource(id = boost.icon),
+            contentDescription = null,
+            modifier = Modifier
+                .size(32.dp)
+                .padding(end = 8.dp)
         )
+        Column {
+            OutlinedText(text = "Bonus: $boostName", style = MaterialTheme.typography.bodyLarge)
+            OutlinedText(text = description, style = MaterialTheme.typography.bodyMedium)
+        }
     }
 }
 
