@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.isActive
 
 @HiltViewModel
 class GameViewModel @Inject constructor(
@@ -37,9 +38,17 @@ class GameViewModel @Inject constructor(
     }
 
     fun movePlayer(delta: Float) {
+        updatePlayerPosition(_state.value.playerX + delta)
+    }
+
+    fun setPlayerPosition(fraction: Float) {
+        updatePlayerPosition(fraction)
+    }
+
+    private fun updatePlayerPosition(newValue: Float) {
         updateState { current ->
             if (current.phase != GamePhase.RUNNING) return@updateState current
-            val newX = (current.playerX + delta).coerceIn(0.05f, 0.95f)
+            val newX = newValue.coerceIn(0.05f, 0.95f)
             current.copy(playerX = newX)
         }
     }
@@ -95,7 +104,7 @@ class GameViewModel @Inject constructor(
 
     private fun startLoops() {
         viewModelScope.launch {
-            while (true) {
+            while (isActive) {
                 delay(16)
                 tick()
             }
