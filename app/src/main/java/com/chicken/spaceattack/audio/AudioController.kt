@@ -1,6 +1,7 @@
 package com.chicken.spaceattack.audio
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.media.SoundPool
@@ -20,9 +21,12 @@ class AudioController @Inject constructor(@ApplicationContext private val contex
     private val soundIds = mutableMapOf<Int, Int>()
     private var soundsLoaded = false
 
-    var isMusicEnabled: Boolean = true
+    private val prefs: SharedPreferences =
+            context.getSharedPreferences("audio_prefs", Context.MODE_PRIVATE)
+
+    var isMusicEnabled: Boolean = prefs.getBoolean(KEY_MUSIC, true)
         private set
-    var isSoundEnabled: Boolean = true
+    var isSoundEnabled: Boolean = prefs.getBoolean(KEY_SOUND, true)
         private set
 
     init {
@@ -62,6 +66,7 @@ class AudioController @Inject constructor(@ApplicationContext private val contex
 
     fun toggleMusic() {
         isMusicEnabled = !isMusicEnabled
+        prefs.edit().putBoolean(KEY_MUSIC, isMusicEnabled).apply()
         if (isMusicEnabled) {
             resumeMusic()
         } else {
@@ -71,6 +76,7 @@ class AudioController @Inject constructor(@ApplicationContext private val contex
 
     fun toggleSound() {
         isSoundEnabled = !isSoundEnabled
+        prefs.edit().putBoolean(KEY_SOUND, isSoundEnabled).apply()
     }
 
     fun playMenuMusic() {
@@ -183,5 +189,10 @@ class AudioController @Inject constructor(@ApplicationContext private val contex
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+
+    private companion object {
+        const val KEY_MUSIC = "music_enabled"
+        const val KEY_SOUND = "sound_enabled"
     }
 }

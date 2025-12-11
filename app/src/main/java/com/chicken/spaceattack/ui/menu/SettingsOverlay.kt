@@ -14,6 +14,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,13 +29,17 @@ import com.chicken.spaceattack.ui.components.PrimaryButton
 
 @Composable
 fun SettingsOverlay(audioController: AudioController, onClose: () -> Unit) {
+    var musicEnabled by remember { mutableStateOf(audioController.isMusicEnabled) }
+    var soundEnabled by remember { mutableStateOf(audioController.isSoundEnabled) }
+
     Box(
         modifier = Modifier.fillMaxSize().background(Color(0x99000000)),
         contentAlignment = Alignment.Center
     ) {
         Column(
             modifier =
-                Modifier.clip(RoundedCornerShape(24.dp))
+                Modifier
+                    .clip(RoundedCornerShape(24.dp))
                     .background(MaterialTheme.colorScheme.primary)
                     .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -40,7 +48,6 @@ fun SettingsOverlay(audioController: AudioController, onClose: () -> Unit) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Music toggle
             Row(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -48,13 +55,15 @@ fun SettingsOverlay(audioController: AudioController, onClose: () -> Unit) {
             ) {
                 OutlinedText(text = "Music", style = MaterialTheme.typography.bodyLarge)
                 PrimaryButton(
-                    text = if (audioController.isMusicEnabled) "ON" else "OFF",
-                    onClick = { audioController.toggleMusic() },
+                    text = if (musicEnabled) "ON" else "OFF",
+                    onClick = {
+                        audioController.toggleMusic()
+                        musicEnabled = audioController.isMusicEnabled
+                    },
                     modifier = Modifier.width(80.dp)
                 )
             }
 
-            // Sound toggle
             Row(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -62,8 +71,11 @@ fun SettingsOverlay(audioController: AudioController, onClose: () -> Unit) {
             ) {
                 OutlinedText(text = "Sound", style = MaterialTheme.typography.bodyLarge)
                 PrimaryButton(
-                    text = if (audioController.isSoundEnabled) "ON" else "OFF",
-                    onClick = { audioController.toggleSound() },
+                    text = if (soundEnabled) "ON" else "OFF",
+                    onClick = {
+                        audioController.toggleSound()
+                        soundEnabled = audioController.isSoundEnabled
+                    },
                     modifier = Modifier.width(80.dp)
                 )
             }
