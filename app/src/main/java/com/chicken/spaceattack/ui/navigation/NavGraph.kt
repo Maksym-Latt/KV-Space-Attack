@@ -1,10 +1,5 @@
 package com.chicken.spaceattack.ui.navigation
 
-import androidx.compose.animation.AnimatedContentScope.SlideDirection
-import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
