@@ -155,6 +155,8 @@ constructor(
         val current = _state.value
         if (current.phase != GamePhase.RUNNING) return
 
+        var playerHitEffectRemaining = (current.playerHitEffectMillis - delta).coerceAtLeast(0)
+
         val playerPosition = Position(current.playerX, 0.92f)
 
         val movedBoosts = engine.tickBoosts(current.boosts, delta)
@@ -254,6 +256,9 @@ constructor(
                         enemyShots
                 )
         val lives = if (playerHit.hit && !shieldActive) current.lives - 1 else current.lives
+        if (playerHit.hit) {
+            playerHitEffectRemaining = PLAYER_HIT_EFFECT_DURATION
+        }
         shieldActive =
                 if (playerHit.hit && shieldActive) {
                     shieldRemaining = 0
@@ -321,6 +326,7 @@ constructor(
                         lives = lives,
                         boosts = destroyedBoosts + bossDamageBoosts + workingState.boosts,
                         explosions = updatedExplosions,
+                        playerHitEffectMillis = playerHitEffectRemaining,
                         activeShotBoost = activeShotBoost,
                         shotBoostRemaining = shotBoostRemaining,
                         nuclearShotsRemaining = nuclearShotsRemaining,
@@ -376,6 +382,7 @@ data class GameUiState(
         val enemyProjectiles: List<Projectile>,
         val boosts: List<Boost>,
         val explosions: List<Explosion> = emptyList(),
+        val playerHitEffectMillis: Long = 0L,
         val activeShotBoost: BoostType? = null,
         val shotBoostRemaining: Long = 0L,
         val nuclearShotsRemaining: Int = 0,
@@ -397,3 +404,5 @@ enum class GamePhase {
     WON,
     LEVEL_COMPLETE
 }
+
+const val PLAYER_HIT_EFFECT_DURATION = 450L
