@@ -1,6 +1,5 @@
 package com.chicken.spaceattack.ui.menu
 
-import android.R.attr.text
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -12,10 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -25,35 +21,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.chicken.spaceattack.R
 import com.chicken.spaceattack.audio.AudioController
 import com.chicken.spaceattack.ui.components.BalanceBubble
 import com.chicken.spaceattack.ui.components.CapsuleIconButton
-import com.chicken.spaceattack.ui.components.CoinBadge
-import com.chicken.spaceattack.ui.components.OutlinedText
 import com.chicken.spaceattack.ui.components.PrimaryButton
 
 @Composable
-fun MainMenuScreen(
-    coins: Int,
-    onPlay: () -> Unit,
-    onShop: () -> Unit,
-    onTrophies: () -> Unit,
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
+fun MainMenuScreen(audioController: AudioController, viewModel: MenuViewModel, onStart: () -> Unit) {
+    val state by viewModel.state.collectAsState()
+    var showSettings by remember { mutableStateOf(false) }
+    var showShop by remember { mutableStateOf(false) }
 
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
         BalanceBubble(
-            coins = coins,
+            coins = state.coins,
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(top = 36.dp, end = 24.dp)
@@ -79,9 +64,8 @@ fun MainMenuScreen(
 
             PrimaryButton(
                 text = "PLAY",
-                modifier = Modifier
-                    .fillMaxWidth(0.7f),
-                onClick = onPlay
+                modifier = Modifier.fillMaxWidth(0.7f),
+                onClick = onStart
             )
 
             Spacer(modifier = Modifier.height(80.dp))
@@ -92,17 +76,45 @@ fun MainMenuScreen(
             ) {
                 CapsuleIconButton(
                     icon = R.drawable.ic_settings,
-                    onClick = onShop
+                    onClick = { showSettings = true }
                 )
                 CapsuleIconButton(
                     icon = R.drawable.ic_trophy,
-                    onClick = onTrophies
+                    onClick = { /* reserved for future trophies */ }
                 )
                 CapsuleIconButton(
                     icon = R.drawable.ic_bag,
-                    onClick = onInventory
+                    onClick = { showShop = true }
                 )
             }
+        }
+
+        if (showSettings) {
+            SettingsOverlay(audioController = audioController) { showSettings = false }
+        }
+
+        if (showShop) {
+            UpgradeOverlay(viewModel = viewModel) { showShop = false }
+        }
+    }
+}
+
+@Composable
+private fun UpgradeOverlay(viewModel: MenuViewModel, onClose: () -> Unit) {
+    Box(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(Color(0x99000000)),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+        ) {
+            UpgradeScreen(viewModel = viewModel, onBack = onClose)
         }
     }
 }

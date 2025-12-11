@@ -11,14 +11,12 @@ import com.chicken.spaceattack.ui.game.GameScreen
 import com.chicken.spaceattack.ui.game.GameViewModel
 import com.chicken.spaceattack.ui.menu.MainMenuScreen
 import com.chicken.spaceattack.ui.menu.MenuViewModel
-import com.chicken.spaceattack.ui.menu.UpgradeScreen
 import com.chicken.spaceattack.ui.splash.LoadingScreen
 
 sealed class Destinations(val route: String) {
     data object Loading : Destinations("loading")
     data object Menu : Destinations("menu")
     data object Game : Destinations("game")
-    data object Upgrades : Destinations("upgrades")
 }
 
 @Composable
@@ -37,12 +35,7 @@ fun AppNavHost(audioController: AudioController, navController: NavHostControlle
             MainMenuScreen(
                 audioController = audioController,
                 viewModel = menuViewModel,
-                onStart = {
-                    navController.navigate(Destinations.Game.route)
-                },
-                onOpenUpgrades = {
-                    navController.navigate(Destinations.Upgrades.route)
-                }
+                onStart = { navController.navigate(Destinations.Game.route) }
             )
         }
         composable(Destinations.Game.route) {
@@ -52,13 +45,6 @@ fun AppNavHost(audioController: AudioController, navController: NavHostControlle
                 onBackToMenu = {
                     navController.popBackStack(Destinations.Menu.route, inclusive = false)
                 }
-            )
-        }
-        composable(Destinations.Upgrades.route) {
-            val menuViewModel: MenuViewModel = hiltViewModel()
-            UpgradeScreen(
-                viewModel = menuViewModel,
-                onBack = { navController.popBackStack() }
             )
         }
     }
