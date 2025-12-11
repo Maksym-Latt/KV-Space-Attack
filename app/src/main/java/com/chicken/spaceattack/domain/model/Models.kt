@@ -2,6 +2,7 @@ package com.chicken.spaceattack.domain.model
 
 import androidx.annotation.DrawableRes
 import com.chicken.spaceattack.R
+import com.chicken.spaceattack.domain.config.GameConfig
 import java.util.UUID
 
 data class Position(val x: Float, val y: Float)
@@ -47,7 +48,7 @@ data class Boost(
     val type: BoostType,
     val position: Position,
     val isActive: Boolean = false,
-    val ttlMillis: Long = 8000L
+    val ttlMillis: Long = GameConfig.Boosts.ttlMillis
 )
 
 data class LevelConfig(val level: Int, val smallEnemies: Int, val mediumEnemies: Int, val boss: Boolean = false)
