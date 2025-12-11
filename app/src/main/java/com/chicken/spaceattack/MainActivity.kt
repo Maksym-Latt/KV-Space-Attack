@@ -5,18 +5,17 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import com.chicken.spaceattack.ui.theme.ChickenWarsSpaceAttackTheme
+import com.chicken.spaceattack.audio.AudioController
+import com.chicken.spaceattack.ui.navigation.AppNavHost
+import com.chicken.spaceattack.ui.theme.ChickenWarsTheme
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -25,19 +24,15 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+        enableEdgeToEdge()
         setContent {
-            ChickenSideHopTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    AppNavHost()
+            ChickenWarsTheme {
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    AppNavHost(audioController = audioController)
                 }
+                SideEffect { hideSystemUI() }
             }
         }
-
-        hideSystemUI()
     }
 
     private fun hideSystemUI() {
@@ -54,15 +49,15 @@ class MainActivity : ComponentActivity() {
         audioController.onAppForeground()
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        audioController.onAppBackground()
-        audioController.persistSettings()
-    }
-
     override fun onPause() {
         super.onPause()
         audioController.onAppBackground()
         audioController.persistSettings()
+    }
+
+    override fun onDestroy() {
+        audioController.onAppBackground()
+        audioController.persistSettings()
+        super.onDestroy()
     }
 }
