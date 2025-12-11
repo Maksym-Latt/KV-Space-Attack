@@ -52,12 +52,10 @@ class MainActivity : ComponentActivity() {
     override fun onPause() {
         super.onPause()
         audioController.onAppBackground()
-        audioController.persistSettings()
     }
 
     override fun onDestroy() {
         audioController.onAppBackground()
-        audioController.persistSettings()
         super.onDestroy()
     }
 }

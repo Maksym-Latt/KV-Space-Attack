@@ -1,7 +1,9 @@
 package com.chicken.spaceattack.audio
 
 import android.content.Context
+import android.media.AudioAttributes
 import android.media.MediaPlayer
+import android.media.SoundPool
 import androidx.annotation.RawRes
 import com.chicken.spaceattack.R
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -9,17 +11,54 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class AudioController @Inject constructor(
-    @ApplicationContext private val context: Context
-) {
+class AudioController @Inject constructor(@ApplicationContext private val context: Context) {
     private var menuPlayer: MediaPlayer? = null
     private var gamePlayer: MediaPlayer? = null
-    private var sfxPlayer: MediaPlayer? = null
+
+    // Use SoundPool for sound effects (much more efficient)
+    private var soundPool: SoundPool? = null
+    private val soundIds = mutableMapOf<Int, Int>()
+    private var soundsLoaded = false
 
     var isMusicEnabled: Boolean = true
         private set
     var isSoundEnabled: Boolean = true
         private set
+
+    init {
+        initSoundPool()
+    }
+
+    private fun initSoundPool() {
+        val audioAttributes =
+                AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_GAME)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build()
+
+        soundPool =
+                SoundPool.Builder()
+                        .setMaxStreams(5) // Max 5 simultaneous sounds
+                        .setAudioAttributes(audioAttributes)
+                        .build()
+
+        soundPool?.setOnLoadCompleteListener { _, _, status ->
+            if (status == 0) {
+                soundsLoaded = true
+            }
+        }
+
+        // Preload all sound effects
+        try {
+            soundIds[R.raw.sfx_shot] = soundPool?.load(context, R.raw.sfx_shot, 1) ?: 0
+            soundIds[R.raw.sfx_hit] = soundPool?.load(context, R.raw.sfx_hit, 1) ?: 0
+            soundIds[R.raw.sfx_explosion] = soundPool?.load(context, R.raw.sfx_explosion, 1) ?: 0
+            soundIds[R.raw.sfx_lose] = soundPool?.load(context, R.raw.sfx_lose, 1) ?: 0
+            soundIds[R.raw.sfx_win] = soundPool?.load(context, R.raw.sfx_win, 1) ?: 0
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
 
     fun toggleMusic() {
         isMusicEnabled = !isMusicEnabled
@@ -36,20 +75,32 @@ class AudioController @Inject constructor(
 
     fun playMenuMusic() {
         if (!isMusicEnabled) return
-        if (menuPlayer == null) {
-            menuPlayer = createLoopingPlayer(R.raw.music_menu)
+        try {
+            if (menuPlayer == null) {
+                menuPlayer = createLoopingPlayer(R.raw.music_menu)
+            }
+            gamePlayer?.pause()
+            if (menuPlayer?.isPlaying == false) {
+                menuPlayer?.start()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
-        gamePlayer?.pause()
-        menuPlayer?.start()
     }
 
     fun playGameMusic() {
         if (!isMusicEnabled) return
-        if (gamePlayer == null) {
-            gamePlayer = createLoopingPlayer(R.raw.music_game)
+        try {
+            if (gamePlayer == null) {
+                gamePlayer = createLoopingPlayer(R.raw.music_game)
+            }
+            menuPlayer?.pause()
+            if (gamePlayer?.isPlaying == false) {
+                gamePlayer?.start()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
-        menuPlayer?.pause()
-        gamePlayer?.start()
     }
 
     fun playShot() = playSfx(R.raw.sfx_shot)
@@ -66,39 +117,71 @@ class AudioController @Inject constructor(
         pauseAll()
     }
 
-    fun persistSettings() {
-        // Placeholder for future DataStore persistence
+    fun release() {
+        try {
+            menuPlayer?.release()
+            menuPlayer = null
+            gamePlayer?.release()
+            gamePlayer = null
+            soundPool?.release()
+            soundPool = null
+            soundIds.clear()
+            soundsLoaded = false
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun playSfx(@RawRes res: Int) {
-        if (!isSoundEnabled) return
-        sfxPlayer?.release()
-        sfxPlayer = MediaPlayer.create(context, res)
-        sfxPlayer?.setOnCompletionListener { player ->
-            player.release()
+        if (!isSoundEnabled || !soundsLoaded) return
+        try {
+            val soundId = soundIds[res] ?: return
+            soundPool?.play(soundId, 1f, 1f, 1, 0, 1f)
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
-        sfxPlayer?.start()
     }
 
-    private fun createLoopingPlayer(@RawRes res: Int): MediaPlayer {
-        return MediaPlayer.create(context, res).apply {
-            isLooping = true
+    private fun createLoopingPlayer(@RawRes res: Int): MediaPlayer? {
+        return try {
+            MediaPlayer.create(context, res)?.apply {
+                isLooping = true
+                setOnErrorListener { _, _, _ ->
+                    // Handle error gracefully
+                    true
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 
     private fun resumeMusic() {
         if (!isMusicEnabled) return
-        if (gamePlayer?.isPlaying == false) gamePlayer?.start()
-        if (menuPlayer?.isPlaying == false) menuPlayer?.start()
+        try {
+            if (gamePlayer?.isPlaying == false) gamePlayer?.start()
+            if (menuPlayer?.isPlaying == false) menuPlayer?.start()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun stopMusic() {
-        gamePlayer?.pause()
-        menuPlayer?.pause()
+        try {
+            gamePlayer?.pause()
+            menuPlayer?.pause()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun pauseAll() {
-        gamePlayer?.pause()
-        menuPlayer?.pause()
+        try {
+            gamePlayer?.pause()
+            menuPlayer?.pause()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 }

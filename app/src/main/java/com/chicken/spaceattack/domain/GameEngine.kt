@@ -39,36 +39,18 @@ class GameEngine {
             levelConfigs.firstOrNull { it.level == level } ?: levelConfigs.last()
 
     private fun spawnLevel(config: LevelConfig): List<Enemy> {
-        val totalEnemies = config.smallEnemies + config.mediumEnemies
-        val slots = mutableListOf<FormationSlot>()
-        var row = 0
-        var column = 0
-        repeat(totalEnemies) {
-            slots += FormationSlot(row, column, gridPosition(row, column))
-            column++
-            if (column >= formationColumns) {
-                column = 0
-                row++
-            }
-        }
-
         val pattern = FormationPattern.entries.random()
-        val assignedTypes =
-                when (pattern) {
-                    FormationPattern.FRONT_RED_BACK_BLUE -> frontRedBackBlue(config, slots.size)
-                    FormationPattern.CHECKERBOARD -> checkerboard(config, slots)
-                    FormationPattern.RED_SIDES -> redSides(config, slots)
-                }
-
         val enemies =
-                slots
-                        .mapIndexed { index, slot ->
-                            Enemy(
-                                    type = assignedTypes.getOrElse(index) { EnemyType.SMALL },
-                                    position = slot.position
-                            )
-                        }
-                        .toMutableList()
+                when (pattern) {
+                    FormationPattern.FRONT_RED_BACK_BLUE -> createFrontRedBackBlue(config)
+                    FormationPattern.CHECKERBOARD -> createCheckerboard(config)
+                    FormationPattern.RED_SIDES -> createRedSides(config)
+                    FormationPattern.V_SHAPE -> createVShape(config)
+                    FormationPattern.DIAMOND -> createDiamond(config)
+                    FormationPattern.SCATTERED -> createScattered(config)
+                    FormationPattern.ALTERNATING_ROWS -> createAlternatingRows(config)
+                    FormationPattern.CENTER_FORMATION -> createCenterFormation(config)
+                }.toMutableList()
 
         if (config.boss) {
             enemies +=
@@ -77,68 +59,297 @@ class GameEngine {
         return enemies
     }
 
-    private fun frontRedBackBlue(config: LevelConfig, totalSlots: Int): List<EnemyType> {
+    // Original patterns
+    private fun createFrontRedBackBlue(config: LevelConfig): List<Enemy> {
+        val enemies = mutableListOf<Enemy>()
         var remainingMedium = config.mediumEnemies
         var remainingSmall = config.smallEnemies
-        return List(totalSlots) {
-            when {
-                remainingMedium > 0 -> {
-                    remainingMedium--
-                    EnemyType.MEDIUM
-                }
-                remainingSmall > 0 -> {
-                    remainingSmall--
-                    EnemyType.SMALL
-                }
-                else -> EnemyType.SMALL
+        var row = 0
+        var column = 0
+
+        while (remainingMedium > 0 || remainingSmall > 0) {
+            val type =
+                    if (remainingMedium > 0) {
+                        remainingMedium--
+                        EnemyType.MEDIUM
+                    } else {
+                        remainingSmall--
+                        EnemyType.SMALL
+                    }
+            enemies += Enemy(type = type, position = gridPosition(row, column))
+            column++
+            if (column >= formationColumns) {
+                column = 0
+                row++
             }
         }
+        return enemies
     }
 
-    private fun checkerboard(config: LevelConfig, slots: List<FormationSlot>): List<EnemyType> {
+    private fun createCheckerboard(config: LevelConfig): List<Enemy> {
+        val enemies = mutableListOf<Enemy>()
         var remainingMedium = config.mediumEnemies
         var remainingSmall = config.smallEnemies
-        return slots.map { slot ->
-            val prefersMedium = (slot.row + slot.column) % 2 == 0
-            when {
-                prefersMedium && remainingMedium > 0 -> {
-                    remainingMedium--
-                    EnemyType.MEDIUM
-                }
-                remainingSmall > 0 -> {
-                    remainingSmall--
-                    EnemyType.SMALL
-                }
-                remainingMedium > 0 -> {
-                    remainingMedium--
-                    EnemyType.MEDIUM
-                }
-                else -> EnemyType.SMALL
+        var row = 0
+        var column = 0
+
+        while (remainingMedium > 0 || remainingSmall > 0) {
+            val prefersMedium = (row + column) % 2 == 0
+            val type =
+                    when {
+                        prefersMedium && remainingMedium > 0 -> {
+                            remainingMedium--
+                            EnemyType.MEDIUM
+                        }
+                        remainingSmall > 0 -> {
+                            remainingSmall--
+                            EnemyType.SMALL
+                        }
+                        else -> {
+                            remainingMedium--
+                            EnemyType.MEDIUM
+                        }
+                    }
+            enemies += Enemy(type = type, position = gridPosition(row, column))
+            column++
+            if (column >= formationColumns) {
+                column = 0
+                row++
             }
         }
+        return enemies
     }
 
-    private fun redSides(config: LevelConfig, slots: List<FormationSlot>): List<EnemyType> {
+    private fun createRedSides(config: LevelConfig): List<Enemy> {
+        val enemies = mutableListOf<Enemy>()
         var remainingMedium = config.mediumEnemies
         var remainingSmall = config.smallEnemies
-        return slots.map { slot ->
-            val onSide = slot.column == 0 || slot.column == formationColumns - 1
-            when {
-                onSide && remainingMedium > 0 -> {
-                    remainingMedium--
-                    EnemyType.MEDIUM
-                }
-                remainingSmall > 0 -> {
-                    remainingSmall--
-                    EnemyType.SMALL
-                }
-                remainingMedium > 0 -> {
-                    remainingMedium--
-                    EnemyType.MEDIUM
-                }
-                else -> EnemyType.SMALL
+        var row = 0
+        var column = 0
+
+        while (remainingMedium > 0 || remainingSmall > 0) {
+            val onSide = column == 0 || column == formationColumns - 1
+            val type =
+                    when {
+                        onSide && remainingMedium > 0 -> {
+                            remainingMedium--
+                            EnemyType.MEDIUM
+                        }
+                        remainingSmall > 0 -> {
+                            remainingSmall--
+                            EnemyType.SMALL
+                        }
+                        else -> {
+                            remainingMedium--
+                            EnemyType.MEDIUM
+                        }
+                    }
+            enemies += Enemy(type = type, position = gridPosition(row, column))
+            column++
+            if (column >= formationColumns) {
+                column = 0
+                row++
             }
         }
+        return enemies
+    }
+
+    // New diverse patterns
+    private fun createVShape(config: LevelConfig): List<Enemy> {
+        val enemies = mutableListOf<Enemy>()
+        var remainingMedium = config.mediumEnemies
+        var remainingSmall = config.smallEnemies
+        val rows = 4
+
+        for (row in 0 until rows) {
+            val gap = row // Gap increases with each row
+            val startCol = gap
+            val endCol = formationColumns - 1 - gap
+
+            if (startCol <= endCol) {
+                // Left side of V
+                if (remainingMedium > 0 || remainingSmall > 0) {
+                    val type =
+                            if (remainingMedium > 0) {
+                                remainingMedium--
+                                EnemyType.MEDIUM
+                            } else {
+                                remainingSmall--
+                                EnemyType.SMALL
+                            }
+                    enemies += Enemy(type = type, position = gridPosition(row, startCol))
+                }
+                // Right side of V
+                if (startCol != endCol && (remainingMedium > 0 || remainingSmall > 0)) {
+                    val type =
+                            if (remainingMedium > 0) {
+                                remainingMedium--
+                                EnemyType.MEDIUM
+                            } else {
+                                remainingSmall--
+                                EnemyType.SMALL
+                            }
+                    enemies += Enemy(type = type, position = gridPosition(row, endCol))
+                }
+            }
+        }
+        return enemies
+    }
+
+    private fun createDiamond(config: LevelConfig): List<Enemy> {
+        val enemies = mutableListOf<Enemy>()
+        var remainingMedium = config.mediumEnemies
+        var remainingSmall = config.smallEnemies
+        val center = formationColumns / 2
+
+        // Top half of diamond
+        for (row in 0..2) {
+            val width = row + 1
+            for (offset in 0 until width) {
+                val col = center - offset
+                if (col >= 0 &&
+                                col < formationColumns &&
+                                (remainingMedium > 0 || remainingSmall > 0)
+                ) {
+                    val type =
+                            if (Random.nextBoolean() && remainingMedium > 0) {
+                                remainingMedium--
+                                EnemyType.MEDIUM
+                            } else if (remainingSmall > 0) {
+                                remainingSmall--
+                                EnemyType.SMALL
+                            } else {
+                                remainingMedium--
+                                EnemyType.MEDIUM
+                            }
+                    enemies += Enemy(type = type, position = gridPosition(row, col))
+                }
+                if (offset > 0) {
+                    val colRight = center + offset
+                    if (colRight < formationColumns && (remainingMedium > 0 || remainingSmall > 0)
+                    ) {
+                        val type =
+                                if (Random.nextBoolean() && remainingMedium > 0) {
+                                    remainingMedium--
+                                    EnemyType.MEDIUM
+                                } else if (remainingSmall > 0) {
+                                    remainingSmall--
+                                    EnemyType.SMALL
+                                } else {
+                                    remainingMedium--
+                                    EnemyType.MEDIUM
+                                }
+                        enemies += Enemy(type = type, position = gridPosition(row, colRight))
+                    }
+                }
+            }
+        }
+        return enemies
+    }
+
+    private fun createScattered(config: LevelConfig): List<Enemy> {
+        val enemies = mutableListOf<Enemy>()
+        var remainingMedium = config.mediumEnemies
+        var remainingSmall = config.smallEnemies
+        val totalEnemies = remainingMedium + remainingSmall
+        val positions = mutableListOf<Pair<Int, Int>>()
+
+        // Generate all possible positions
+        for (row in 0..3) {
+            for (col in 0 until formationColumns) {
+                positions.add(row to col)
+            }
+        }
+        positions.shuffle()
+
+        // Place enemies randomly
+        for (i in 0 until minOf(totalEnemies, positions.size)) {
+            val (row, col) = positions[i]
+            val type =
+                    if (remainingMedium > 0 && Random.nextBoolean()) {
+                        remainingMedium--
+                        EnemyType.MEDIUM
+                    } else if (remainingSmall > 0) {
+                        remainingSmall--
+                        EnemyType.SMALL
+                    } else if (remainingMedium > 0) {
+                        remainingMedium--
+                        EnemyType.MEDIUM
+                    } else continue
+
+            enemies += Enemy(type = type, position = gridPosition(row, col))
+        }
+        return enemies
+    }
+
+    private fun createAlternatingRows(config: LevelConfig): List<Enemy> {
+        val enemies = mutableListOf<Enemy>()
+        var remainingMedium = config.mediumEnemies
+        var remainingSmall = config.smallEnemies
+
+        for (row in 0..3) {
+            val columnsToUse =
+                    if (row % 2 == 0) {
+                        listOf(0, 2, 4) // Even rows: skip every other column
+                    } else {
+                        listOf(1, 3) // Odd rows: offset pattern
+                    }
+
+            for (col in columnsToUse) {
+                if (col < formationColumns && (remainingMedium > 0 || remainingSmall > 0)) {
+                    val type =
+                            if (row < 2 && remainingMedium > 0) {
+                                remainingMedium--
+                                EnemyType.MEDIUM
+                            } else if (remainingSmall > 0) {
+                                remainingSmall--
+                                EnemyType.SMALL
+                            } else if (remainingMedium > 0) {
+                                remainingMedium--
+                                EnemyType.MEDIUM
+                            } else continue
+
+                    enemies += Enemy(type = type, position = gridPosition(row, col))
+                }
+            }
+        }
+        return enemies
+    }
+
+    private fun createCenterFormation(config: LevelConfig): List<Enemy> {
+        val enemies = mutableListOf<Enemy>()
+        var remainingMedium = config.mediumEnemies
+        var remainingSmall = config.smallEnemies
+        val center = formationColumns / 2
+
+        // Create a concentrated formation in the center
+        for (row in 0..3) {
+            val width = if (row < 2) 3 else 2 // Wider at top, narrower at bottom
+            val startCol = center - width / 2
+
+            for (offset in 0 until width) {
+                val col = startCol + offset
+                if (col >= 0 &&
+                                col < formationColumns &&
+                                (remainingMedium > 0 || remainingSmall > 0)
+                ) {
+                    val type =
+                            if (col == center && remainingMedium > 0) {
+                                remainingMedium--
+                                EnemyType.MEDIUM
+                            } else if (remainingSmall > 0) {
+                                remainingSmall--
+                                EnemyType.SMALL
+                            } else if (remainingMedium > 0) {
+                                remainingMedium--
+                                EnemyType.MEDIUM
+                            } else continue
+
+                    enemies += Enemy(type = type, position = gridPosition(row, col))
+                }
+            }
+        }
+        return enemies
     }
 
     private fun gridPosition(row: Int, column: Int): Position {
@@ -348,7 +559,12 @@ class GameEngine {
     private enum class FormationPattern {
         FRONT_RED_BACK_BLUE,
         CHECKERBOARD,
-        RED_SIDES
+        RED_SIDES,
+        V_SHAPE,
+        DIAMOND,
+        SCATTERED,
+        ALTERNATING_ROWS,
+        CENTER_FORMATION
     }
 
     private data class FormationSlot(val row: Int, val column: Int, val position: Position)
