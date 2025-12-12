@@ -106,7 +106,7 @@ constructor(
             BoostType.LIGHTNING -> {
                 shotType = ShotType.LIGHTNING
                 activeShotBoost = BoostType.LIGHTNING
-                shotBoostRemaining = GameConfig.Boosts.ttlMillis
+                shotBoostRemaining = upgradeRepository.lightningDurationMillis()
                 nuclearShots = 0
             }
             BoostType.NUCLEAR -> {
@@ -120,7 +120,7 @@ constructor(
                 shieldRemaining = upgradeRepository.shieldDurationMillis()
             }
             BoostType.SLOW_TIME -> {
-                slowRemaining = GameConfig.Boosts.ttlMillis
+                slowRemaining = upgradeRepository.slowTimeDurationMillis()
             }
         }
 

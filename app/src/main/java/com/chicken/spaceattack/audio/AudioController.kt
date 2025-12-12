@@ -16,6 +16,9 @@ class AudioController @Inject constructor(@ApplicationContext private val contex
     private var menuPlayer: MediaPlayer? = null
     private var gamePlayer: MediaPlayer? = null
 
+    // Track which music context we're in
+    private var currentMusicContext: MusicContext = MusicContext.NONE
+
     // Use SoundPool for sound effects (much more efficient)
     private var soundPool: SoundPool? = null
     private val soundIds = mutableMapOf<Int, Int>()
@@ -67,10 +70,17 @@ class AudioController @Inject constructor(@ApplicationContext private val contex
     fun toggleMusic() {
         isMusicEnabled = !isMusicEnabled
         prefs.edit().putBoolean(KEY_MUSIC, isMusicEnabled).apply()
+
         if (isMusicEnabled) {
-            resumeMusic()
+            // Resume the current context music
+            when (currentMusicContext) {
+                MusicContext.MENU -> playMenuMusic()
+                MusicContext.GAME -> playGameMusic()
+                MusicContext.NONE -> Unit
+            }
         } else {
-            stopMusic()
+            // Stop all music
+            stopAllMusic()
         }
     }
 
@@ -80,12 +90,18 @@ class AudioController @Inject constructor(@ApplicationContext private val contex
     }
 
     fun playMenuMusic() {
+        currentMusicContext = MusicContext.MENU
         if (!isMusicEnabled) return
+
         try {
+            // Stop game music completely
+            gamePlayer?.pause()
+
+            // Create or resume menu music
             if (menuPlayer == null) {
                 menuPlayer = createLoopingPlayer(R.raw.music_menu)
             }
-            gamePlayer?.pause()
+
             if (menuPlayer?.isPlaying == false) {
                 menuPlayer?.start()
             }
@@ -95,12 +111,18 @@ class AudioController @Inject constructor(@ApplicationContext private val contex
     }
 
     fun playGameMusic() {
+        currentMusicContext = MusicContext.GAME
         if (!isMusicEnabled) return
+
         try {
+            // Stop menu music completely
+            menuPlayer?.pause()
+
+            // Create or resume game music
             if (gamePlayer == null) {
                 gamePlayer = createLoopingPlayer(R.raw.music_game)
             }
-            menuPlayer?.pause()
+
             if (gamePlayer?.isPlaying == false) {
                 gamePlayer?.start()
             }
@@ -116,7 +138,22 @@ class AudioController @Inject constructor(@ApplicationContext private val contex
     fun playWin() = playSfx(R.raw.sfx_win)
 
     fun onAppForeground() {
-        resumeMusic()
+        // Resume only the current context music
+        if (!isMusicEnabled) return
+
+        try {
+            when (currentMusicContext) {
+                MusicContext.MENU -> {
+                    if (menuPlayer?.isPlaying == false) menuPlayer?.start()
+                }
+                MusicContext.GAME -> {
+                    if (gamePlayer?.isPlaying == false) gamePlayer?.start()
+                }
+                MusicContext.NONE -> Unit
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     fun onAppBackground() {
@@ -133,6 +170,7 @@ class AudioController @Inject constructor(@ApplicationContext private val contex
             soundPool = null
             soundIds.clear()
             soundsLoaded = false
+            currentMusicContext = MusicContext.NONE
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -163,17 +201,7 @@ class AudioController @Inject constructor(@ApplicationContext private val contex
         }
     }
 
-    private fun resumeMusic() {
-        if (!isMusicEnabled) return
-        try {
-            if (gamePlayer?.isPlaying == false) gamePlayer?.start()
-            if (menuPlayer?.isPlaying == false) menuPlayer?.start()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
-    private fun stopMusic() {
+    private fun stopAllMusic() {
         try {
             gamePlayer?.pause()
             menuPlayer?.pause()
@@ -189,6 +217,12 @@ class AudioController @Inject constructor(@ApplicationContext private val contex
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+
+    private enum class MusicContext {
+        NONE,
+        MENU,
+        GAME
     }
 
     private companion object {
