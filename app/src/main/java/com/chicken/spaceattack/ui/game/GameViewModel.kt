@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 @HiltViewModel
 class GameViewModel
@@ -34,6 +35,8 @@ constructor(
 
     private val _state = MutableStateFlow(createInitialState())
     val state: StateFlow<GameUiState> = _state.asStateFlow()
+
+    private var coinsAwardedForCurrentRun = false
 
     private var lastTickTime = 0L
     private var shotCooldown = 0L
@@ -74,6 +77,7 @@ constructor(
     fun retry() {
         _state.value = createInitialState()
         audioController.playGameMusic()
+        coinsAwardedForCurrentRun = false
     }
 
     fun onAppPaused(paused: Boolean) {
@@ -342,8 +346,22 @@ constructor(
                         phase = if (nextLevelData != null) GamePhase.RUNNING else phase
                 )
 
+        if (!coinsAwardedForCurrentRun &&
+                        current.phase == GamePhase.RUNNING &&
+                        (updatedState.phase == GamePhase.LOST || updatedState.phase == GamePhase.WON)) {
+            awardCoins(updatedState.score)
+        }
+
         _state.value = updatedState
         handlePhaseAudio(updatedState.phase)
+    }
+
+    private fun awardCoins(score: Int) {
+        val coinsEarned = (score / 10f).roundToInt()
+        if (coinsEarned > 0) {
+            upgradeRepository.addCoins(coinsEarned)
+        }
+        coinsAwardedForCurrentRun = true
     }
 
     private fun handlePhaseAudio(phase: GamePhase) {

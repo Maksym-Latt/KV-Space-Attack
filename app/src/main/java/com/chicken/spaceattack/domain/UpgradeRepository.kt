@@ -86,6 +86,11 @@ class UpgradeRepository @Inject constructor(@ApplicationContext context: Context
         }
     }
 
+    fun addCoins(amount: Int) {
+        if (amount <= 0) return
+        _state.value = _state.value.copy(coins = _state.value.coins + amount)
+    }
+
     private fun upgradeCost(currentLevel: Int): Int = baseCost * currentLevel
 
     private inline fun updateIfPossible(canUpgrade: Boolean, cost: Int, block: (UpgradeState) -> UpgradeState) {
