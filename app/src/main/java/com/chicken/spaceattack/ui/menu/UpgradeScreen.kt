@@ -76,7 +76,7 @@ fun UpgradeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(WindowInsets.safeDrawing.asPaddingValues())
-                .padding(horizontal = 24.dp, vertical = 16.dp),
+                .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Row(
