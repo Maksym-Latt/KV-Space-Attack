@@ -31,9 +31,9 @@ fun UpgradeCard(
                 .padding(horizontal = 14.dp, vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        OutlinedText(text = title, style = MaterialTheme.typography.displaySmall)
-        OutlinedText(text = "Level $level", style = MaterialTheme.typography.bodyLarge)
-        OutlinedText(text = description, style = MaterialTheme.typography.bodyMedium)
+        OutlinedText(text = title)
+        OutlinedText(text = "Level $level")
+        OutlinedText(text = description)
 
         val isMaxLevel = level >= 3
         val buttonText = if (isMaxLevel) "Maxed" else "Upgrade ($cost)"
@@ -44,31 +44,3 @@ fun UpgradeCard(
         )
     }
 }
-
-fun shieldDurationForLevel(level: Int): Int =
-    when (level) {
-        1 -> 5
-        2 -> 7
-        else -> 9
-    }
-
-fun nuclearShotsForLevel(level: Int): Int =
-    when (level) {
-        1 -> 2
-        2 -> 3
-        else -> 5
-    }
-
-fun lightningDurationForLevel(level: Int): Int =
-    when (level) {
-        1 -> 6
-        2 -> 8
-        else -> 10
-    }
-
-fun slowTimeDurationForLevel(level: Int): Int =
-    when (level) {
-        1 -> 5
-        2 -> 7
-        else -> 9
-    }

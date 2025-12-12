@@ -28,8 +28,8 @@ fun CapsuleIconButton(
 ) {
     Box(
         modifier = modifier
-            .width(78.dp)
-            .height(62.dp)
+            .width(60.dp)
+            .height(50.dp)
             .clip(RoundedCornerShape(50))
             .background(
                 Brush.verticalGradient(
@@ -67,7 +67,7 @@ fun CapsuleIconButton(
         Image(
             painter = painterResource(id = icon),
             contentDescription = null,
-            modifier = Modifier.size(34.dp)
+            modifier = Modifier.size(24.dp)
         )
     }
 }

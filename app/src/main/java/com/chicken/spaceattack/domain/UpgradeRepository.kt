@@ -107,7 +107,7 @@ class UpgradeRepository @Inject constructor(@ApplicationContext context: Context
     }
 
     private suspend fun persistState(state: UpgradeState) {
-        dataStore.edit { prefs: Preferences ->
+        dataStore.edit { prefs ->
             prefs[Keys.COINS] = state.coins
             prefs[Keys.SHIELD] = state.shieldLevel
             prefs[Keys.NUCLEAR] = state.nuclearLevel

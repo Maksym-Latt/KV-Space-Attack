@@ -20,11 +20,11 @@ class GameEngine {
 
     private val levelConfigs =
             listOf(
-                    LevelConfig(level = 1, smallEnemies = 10, mediumEnemies = 5), // Easy start
-                    LevelConfig(level = 2, smallEnemies = 12, mediumEnemies = 8), // Getting harder
-                    LevelConfig(level = 3, smallEnemies = 10, mediumEnemies = 10), // Balanced
-                    LevelConfig(level = 4, smallEnemies = 8, mediumEnemies = 12), // More reds
-                    LevelConfig(level = 5, smallEnemies = 15, mediumEnemies = 10), // Many enemies
+                    LevelConfig(level = 1, smallEnemies = 5, mediumEnemies = 0), // Easy start
+                    LevelConfig(level = 2, smallEnemies = 8, mediumEnemies = 1), // Getting harder
+                    LevelConfig(level = 3, smallEnemies = 10, mediumEnemies = 5), // Balanced
+                    LevelConfig(level = 4, smallEnemies = 8, mediumEnemies = 8), // More reds
+                    LevelConfig(level = 5, smallEnemies = 10, mediumEnemies = 10), // Many enemies
                     LevelConfig(level = 6, smallEnemies = 5, mediumEnemies = 15), // Mostly reds
                     LevelConfig(
                             level = 7,

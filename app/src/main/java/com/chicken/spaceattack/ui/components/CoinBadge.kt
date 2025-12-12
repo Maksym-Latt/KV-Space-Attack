@@ -33,7 +33,6 @@ fun CoinBadge(coins: Int) {
             OutlinedText(
                 text = coins.toString(),
                 modifier = Modifier.padding(start = 6.dp),
-                style = MaterialTheme.typography.displaySmall
             )
         }
     }

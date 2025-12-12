@@ -1,8 +1,9 @@
-package com.chicken.spaceattack.ui.menu
+package com.chicken.spaceattack.ui.game
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,22 +13,25 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.TabRowDefaults.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -36,12 +40,13 @@ import com.chicken.spaceattack.audio.AudioController
 import com.chicken.spaceattack.ui.components.ButtonType
 import com.chicken.spaceattack.ui.components.OutlinedText
 import com.chicken.spaceattack.ui.components.PrimaryButton
-import com.chicken.spaceattack.ui.game.PauseToggleButton
+
 
 @Composable
-fun SettingsOverlay(
+fun PauseOverlay(
     audioController: AudioController,
-    onClose: () -> Unit
+    onQuit: () -> Unit,
+    onResume: () -> Unit
 ) {
     var musicEnabled by remember { mutableStateOf(audioController.isMusicEnabled) }
     var soundEnabled by remember { mutableStateOf(audioController.isSoundEnabled) }
@@ -65,7 +70,7 @@ fun SettingsOverlay(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.title_settings),
+                    painter = painterResource(id = R.drawable.title_paused),
                     contentDescription = null,
                     modifier = Modifier.fillMaxWidth(0.7f),
                     contentScale = ContentScale.Crop
@@ -95,14 +100,90 @@ fun SettingsOverlay(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                PrimaryButton(
-                    text = "Quit",
-                    modifier = Modifier.fillMaxWidth().height(60.dp),
-                    onClick = onClose,
-                    type = ButtonType.RED,
-                    fontSize = 20.sp
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    PrimaryButton(
+                        text = "Quit",
+                        modifier = Modifier.weight(1f),
+                        onClick = onQuit,
+                        type = ButtonType.RED,
+                        fontSize = 20.sp
+                    )
+                    PrimaryButton(
+                        text = "Resume",
+                        modifier = Modifier.weight(1f),
+                        onClick = onResume,
+                        fontSize = 20.sp
+                    )
+                }
             }
+        }
+    }
+}
+
+
+@Composable
+fun PauseToggleButton(
+    @DrawableRes icon: Int,
+    text: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = modifier
+            .height(64.dp)
+            .clip(RoundedCornerShape(50))
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        Color(0xFFFFA726),
+                        Color(0xFFF57C00)
+                    )
+                )
+            )
+            .shadow(
+                elevation = 10.dp,
+                shape = RoundedCornerShape(50),
+                clip = false,
+                ambientColor = Color(0xFF975500),
+                spotColor = Color(0xFF975500)
+            )
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .padding(bottom = 6.dp)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            Color(0x00FFFFFF),
+                            Color(0x33FFFFFF)
+                        )
+                    ),
+                    RoundedCornerShape(50)
+                )
+        )
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(horizontal = 20.dp)
+        ) {
+            Image(
+                painter = painterResource(id = icon),
+                contentDescription = null,
+                modifier = Modifier.size(28.dp)
+            )
+            OutlinedText(
+                text = text,
+                fill = Color.White,
+                fontSize = 22.sp
+            )
         }
     }
 }
