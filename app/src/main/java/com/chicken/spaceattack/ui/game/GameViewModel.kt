@@ -16,13 +16,13 @@ import com.chicken.spaceattack.domain.model.Projectile
 import com.chicken.spaceattack.domain.model.ShotType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
 
 @HiltViewModel
 class GameViewModel
@@ -238,6 +238,17 @@ constructor(
         var score = current.score + hitResult.destroyed.sumOf { it.type.score }
         val destroyedBoosts = hitResult.destroyed.mapNotNull { engine.rollBoost(it.position) }
 
+        // Play sound effects for hits and explosions
+        if (hitResult.destroyed.isNotEmpty()) {
+            audioController.playExplosion()
+        } else if (hitResult.hits.isNotEmpty()) {
+            audioController.playHit()
+        }
+
+        if (destroyedBoosts.isNotEmpty()) {
+            audioController.playDrop()
+        }
+
         // Create explosions for destroyed enemies
         val newExplosions =
                 hitResult.destroyed.map { enemy ->
@@ -262,6 +273,9 @@ constructor(
         val lives = if (playerHit.hit && !shieldActive) current.lives - 1 else current.lives
         if (playerHit.hit) {
             playerHitEffectRemaining = PLAYER_HIT_EFFECT_DURATION
+            if (!shieldActive) {
+                audioController.playGetDamage()
+            }
         }
         shieldActive =
                 if (playerHit.hit && shieldActive) {
@@ -284,9 +298,14 @@ constructor(
             val lostHealth = maxHealth - remainingHealth
             val milestonesReached = (lostHealth / (maxHealth / 10f)).toInt().coerceAtMost(10)
             if (milestonesReached > bossDropsTriggered) {
+                var dropped = false
                 repeat(milestonesReached - bossDropsTriggered) {
-                    engine.rollBoost(bossSnapshot.position)?.let { bossDamageBoosts += it }
+                    engine.rollBoost(bossSnapshot.position)?.let {
+                        bossDamageBoosts += it
+                        dropped = true
+                    }
                 }
+                if (dropped) audioController.playDrop()
                 bossDropsTriggered = milestonesReached
             }
             if (boss == null) {
@@ -294,6 +313,13 @@ constructor(
             }
         } else {
             bossDropsTriggered = 0
+        }
+
+        // Play boss income sound when boss first appears
+        val hadBoss = current.enemies.any { it.type == EnemyType.BOSS }
+        val hasBoss = newEnemies.any { it.type == EnemyType.BOSS }
+        if (!hadBoss && hasBoss) {
+            audioController.playBossIncome()
         }
 
         val phase =
@@ -348,7 +374,9 @@ constructor(
 
         if (!coinsAwardedForCurrentRun &&
                         current.phase == GamePhase.RUNNING &&
-                        (updatedState.phase == GamePhase.LOST || updatedState.phase == GamePhase.WON)) {
+                        (updatedState.phase == GamePhase.LOST ||
+                                updatedState.phase == GamePhase.WON)
+        ) {
             awardCoins(updatedState.score)
         }
 

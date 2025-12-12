@@ -20,31 +20,37 @@ sealed class Destinations(val route: String) {
 }
 
 @Composable
-fun AppNavHost(audioController: AudioController, navController: NavHostController = rememberNavController()) {
+fun AppNavHost(
+        audioController: AudioController,
+        navController: NavHostController = rememberNavController()
+) {
     NavHost(navController = navController, startDestination = Destinations.Loading.route) {
         composable(Destinations.Loading.route) {
-            LoadingScreen(onFinished = {
-                audioController.playMenuMusic()
-                navController.navigate(Destinations.Menu.route) {
-                    popUpTo(Destinations.Loading.route) { inclusive = true }
-                }
-            })
+            LoadingScreen(
+                    onFinished = {
+                        audioController.playMenuMusic()
+                        navController.navigate(Destinations.Menu.route) {
+                            popUpTo(Destinations.Loading.route) { inclusive = true }
+                        }
+                    }
+            )
         }
         composable(Destinations.Menu.route) {
+            audioController.playMenuMusic()
             val menuViewModel: MenuViewModel = hiltViewModel()
             MainMenuScreen(
-                audioController = audioController,
-                viewModel = menuViewModel,
-                onStart = { navController.navigate(Destinations.Game.route) }
+                    audioController = audioController,
+                    viewModel = menuViewModel,
+                    onStart = { navController.navigate(Destinations.Game.route) }
             )
         }
         composable(Destinations.Game.route) {
             val viewModel: GameViewModel = hiltViewModel()
             GameScreen(
-                viewModel = viewModel,
-                onBackToMenu = {
-                    navController.popBackStack(Destinations.Menu.route, inclusive = false)
-                }
+                    viewModel = viewModel,
+                    onBackToMenu = {
+                        navController.popBackStack(Destinations.Menu.route, inclusive = false)
+                    }
             )
         }
     }

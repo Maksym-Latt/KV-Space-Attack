@@ -47,13 +47,13 @@ fun LeaderboardOverlay(
     onClose: () -> Unit
 ) {
     val baseEntries = listOf(
-        LeaderboardEntry("Captain C.", 5400),
-        LeaderboardEntry("Nova N.", 4200),
-        LeaderboardEntry("Cosmo C.", 3600),
-        LeaderboardEntry("Galaxy G.", 3100),
-        LeaderboardEntry("Orbit O.", 2600),
-        LeaderboardEntry("Meteor M.", 2100),
-        LeaderboardEntry("Rocket R.", 1800)
+        LeaderboardEntry("Captain C.", 1295),
+        LeaderboardEntry("Nova N.", 720),
+        LeaderboardEntry("Cosmo C.", 480),
+        LeaderboardEntry("Galaxy G.", 36),
+        LeaderboardEntry("Orbit O.", 160),
+        LeaderboardEntry("Meteor M.", 80),
+        LeaderboardEntry("Rocket R.", 20)
     )
 
     val leaderboard = remember(playerCoins) {

@@ -58,8 +58,13 @@ class AudioController @Inject constructor(@ApplicationContext private val contex
         // Preload all sound effects
         try {
             soundIds[R.raw.sfx_shot] = soundPool?.load(context, R.raw.sfx_shot, 1) ?: 0
+            soundIds[R.raw.sfx_drop] = soundPool?.load(context, R.raw.sfx_drop, 1) ?: 0
+            soundIds[R.raw.sfx_hit] = soundPool?.load(context, R.raw.sfx_hit, 1) ?: 0
             soundIds[R.raw.sfx_hit] = soundPool?.load(context, R.raw.sfx_hit, 1) ?: 0
             soundIds[R.raw.sfx_explosion] = soundPool?.load(context, R.raw.sfx_explosion, 1) ?: 0
+            soundIds[R.raw.sfx_get_damage] = soundPool?.load(context, R.raw.sfx_get_damage, 1) ?: 0
+            soundIds[R.raw.sfx_boss_income] =
+                    soundPool?.load(context, R.raw.sfx_boss_income, 1) ?: 0
             soundIds[R.raw.sfx_lose] = soundPool?.load(context, R.raw.sfx_lose, 1) ?: 0
             soundIds[R.raw.sfx_win] = soundPool?.load(context, R.raw.sfx_win, 1) ?: 0
         } catch (e: Exception) {
@@ -132,8 +137,11 @@ class AudioController @Inject constructor(@ApplicationContext private val contex
     }
 
     fun playShot() = playSfx(R.raw.sfx_shot)
+    fun playDrop() = playSfx(R.raw.sfx_drop)
     fun playHit() = playSfx(R.raw.sfx_hit)
     fun playExplosion() = playSfx(R.raw.sfx_explosion)
+    fun playGetDamage() = playSfx(R.raw.sfx_get_damage)
+    fun playBossIncome() = playSfx(R.raw.sfx_boss_income)
     fun playLose() = playSfx(R.raw.sfx_lose)
     fun playWin() = playSfx(R.raw.sfx_win)
 
